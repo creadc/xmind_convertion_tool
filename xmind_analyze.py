@@ -10,17 +10,9 @@ def _is_test_step(title):
 
 
 class TestCaseManager:
-    def __init__(self, xmind_file, output_dir, scenario_main, scenario_sub, version, level, case_type, tags, link_type, issue):
+    def __init__(self, xmind_file, output_dir):
         self.xmind_file = xmind_file
         self.output_dir = output_dir
-        self.scenario_main = scenario_main
-        self.scenario_sub = scenario_sub
-        self.version = version
-        self.level = level
-        self.case_type = case_type
-        self.tags = tags
-        self.link_type = link_type
-        self.issue = issue
 
         self.data = None
         self.test_cases = []
