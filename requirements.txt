@@ -4,3 +4,4 @@ pandas~=1.5
 xmindparser~=1.0.9
 pandastable~=0.13.1
 numpy~=2.0.2
+beautifulsoup4~=4.12.3
