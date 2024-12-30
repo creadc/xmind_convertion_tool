@@ -72,23 +72,25 @@ class JiraLoginApp:
             self.destroy_popup(connecting_popup)
             messagebox.showerror("错误", f"连接 JIRA 服务器失败：{e}")
         init_popup = self.create_popup("正在初始化，请稍候...")
+
+        # 获取 JIRA 字段信息
         try:
-            # 获取 JIRA 字段信息
-            self.destroy_popup(connecting_popup)
             # 获取新建用例时需要的基本信息
-            field_data = self.jira_helper.get_field_data()
-            if field_data:
-                # 进入主界面
-                self.field_data = field_data
-                self.destroy_popup(init_popup)
-                self.open_main_app()
-            else:
+            self.field_data = self.jira_helper.get_field_data()
+            self.destroy_popup(init_popup)
+            if not self.field_data:
                 # 获取 JIRA 字段信息失败
-                self.destroy_popup(init_popup)
-                messagebox.showerror("错误", f"获取jira字段信息失败")
+                messagebox.showerror("错误", f"获取 JIRA 字段信息失败")
         except Exception as e:
             self.destroy_popup(init_popup)
-            messagebox.showerror("错误", f"获取jira字段信息失败：{e}")
+            messagebox.showerror("错误", f"获取jira字段信息异常：{e}")
+
+        # 解析 JIRA 字段信息
+        try:
+            # 进入主界面
+            self.open_main_app()
+        except Exception as e:
+            messagebox.showerror("错误", f"解析jira字段信息异常，请确保JIRA当前项目为ET")
 
     def create_popup(self, text):
         """创建弹窗"""

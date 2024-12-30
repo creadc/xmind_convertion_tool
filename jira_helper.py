@@ -1,12 +1,12 @@
 import requests
 import logging
-import traceback
-import json
 from bs4 import BeautifulSoup
+from atlassian import Jira
 
 
 class JiraHelper:
     def __init__(self):
+        self.jira = Jira(url='https://work.fineres.com/')
         self.base_url = "https://work.fineres.com"
         self.token = None
         self.user = ''
@@ -23,6 +23,7 @@ class JiraHelper:
         self.issuetype = None
 
     def login(self, username, password):
+        """登录"""
         try:
             response = requests.post(
                 f"{self.base_url}/rest/auth/1/session",
@@ -40,6 +41,7 @@ class JiraHelper:
                 cookie = session['name'] + "=" + session['value']
                 self.__headers['cookie'] = self.__add_cookie(self.__headers.get('cookie'), cookie)
                 logging.info("JIRA 登录成功")
+                self.jira = Jira(url=self.base_url, username=username, password=password)
                 return True
         except Exception as e:
             logging.error(f"JIRA 登录接口异常: {e}")
@@ -49,8 +51,7 @@ class JiraHelper:
         """获取新建用例时需要的字段信息，包括功能场景、测试用例来源、用例级别、用例类型"""
         try:
             response = requests.post(
-                # 这里URL要加上某个ET用例的issueId，才能把默认页面转到ET项目，才能获取到ET对应的用例值
-                f"{self.base_url}/secure/QuickCreateIssue!default.jspa?decorator=none&issueId=1323216",
+                f"{self.base_url}/secure/QuickCreateIssue!default.jspa?decorator=none",
                 headers=self.__headers,
                 timeout=10
             )
