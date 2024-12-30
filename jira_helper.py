@@ -38,6 +38,7 @@ class JiraHelper:
                 self.user = username
                 # 保存认证信息
                 session = response.json()['session']
+                self.token = session['value']
                 cookie = session['name'] + "=" + session['value']
                 self.__headers['cookie'] = self.__add_cookie(self.__headers.get('cookie'), cookie)
                 logging.info("JIRA 登录成功")
@@ -50,9 +51,14 @@ class JiraHelper:
     def get_field_data(self):
         """获取新建用例时需要的字段信息，包括功能场景、测试用例来源、用例级别、用例类型"""
         try:
+            data = {'pid': '14400'}
+
+            headers = self.__headers.copy()
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
             response = requests.post(
                 f"{self.base_url}/secure/QuickCreateIssue!default.jspa?decorator=none",
-                headers=self.__headers,
+                headers=headers,
+                data=data,
                 timeout=10
             )
             if response.status_code != 200:
