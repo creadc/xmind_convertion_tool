@@ -1,4 +1,5 @@
 import json
+import re
 
 import requests
 import logging
@@ -165,18 +166,28 @@ class JiraHelper:
             logging.error(f"添加测试结果异常：{e}")
             raise e
 
-    def collect_issue_info(self, task_id):
+    def collect_issue_info(self, issue_key):
         """获取用例的信息"""
+        info = IssueInfo()
         try:
-            r = requests.get(self.base_url + "/browse/" + task_id, headers=self.headers)
-            if r.headers.get('Set-Cookie'):
-                self.headers['cookie'] = self.__add_cookie(self.headers.get('cookie'), r.headers.get('Set-Cookie')[
-                                                                                           :r.headers.get(
+            response = requests.get(self.base_url + "/browse/" + issue_key, headers=self.headers)
+            if response.status_code != 200:
+                logging.error(f"获取用例的信息失败: {issue_key}")
+                return info
+            if response.headers.get('Set-Cookie'):
+                self.headers['cookie'] = self.__add_cookie(self.headers.get('cookie'), response.headers.get('Set-Cookie')[
+                                                                                           :response.headers.get(
                                                                                                'Set-Cookie').rfind(
                                                                                                ";")])
-            return r
+            info.zEncKeyFld = re.findall('zEncKeyFld = "(.*?)"', response.text)[0].lower()
+            info.zEncKeyVal = re.findall('zEncKeyVal = "(.*?)"', response.text)[0]
+            info.issue_key = issue_key
+            issue = self.jira.issue(issue_key)
+            info.issue_id = issue['id']
+            info.title = issue['fields']['summary']
+            return info
         except Exception as e:
-            logging.error(f"添加用例信息异常：{e}")
+            logging.error(f"获取用例信息异常：{e}")
             raise e
 
     def upload_test_cases(self, df):
@@ -191,7 +202,9 @@ class JiraHelper:
             # 用例名不为空，说明是新用例，需要创建ET
             if case_name:
                 try:
-                    res = self.create_case(row)
+                    # 新建用例
+                    # res = self.create_case(row)
+                    res = {'id': '1339911', 'key': 'ET-3490'}
                     if res:
                         new_issue_id = res['id']
                         new_issue_key = res['key']
@@ -199,16 +212,20 @@ class JiraHelper:
                         issue_count += 1
                         step_count = 0
                         print(f"新建用例成功：{new_issue_key}")
-                        # 处理请求头
-                        res = self.collect_issue_info(new_issue_key)
-                        if res:
-                            headers['a'] = 'a'
                     else:
                         logging.error(f"创建第{issue_count + 1}个用例失败")
                         return False
                 except Exception as e:
-                    logging.error(f"创建第{issue_count + 1}个用例异常：{e}")
-                    return False
+                    logging.error(f"创建第{issue_count + 1}个用例异常")
+                    raise e
+                try:
+                    # 处理请求头
+                    info = self.collect_issue_info(new_issue_key)
+                    if info.issue_id != "":
+                        headers[info.zEncKeyFld] = info.zEncKeyVal
+                except Exception as e:
+                    logging.error(f"获取用例【{new_issue_key}】信息异常")
+                    raise e
             # 添加步骤
             try:
                 res = self.add_test_step(issue_id, row["测试步骤"], row["测试数据"], row["预期结果"], headers)
@@ -216,9 +233,10 @@ class JiraHelper:
                     step_count += 1
                     continue
                 else:
+                    logging.error(f"给第{issue_count + 1}个用例添加第{step_count}个步骤时失败")
                     return False
             except Exception as e:
-                logging.error(f"给第{issue_count+1}个用例添加第{step_count}个步骤时失败：{e}")
+                logging.error(f"给第{issue_count+1}个用例添加第{step_count}个步骤时异常：{e}")
                 return False
 
     @staticmethod
@@ -233,3 +251,14 @@ class JiraHelper:
             return cookie_add
         else:
             return cookie_old + "; " + cookie_add
+
+
+class IssueInfo:
+    """测试用例信息"""
+
+    def __init__(self):
+        self.issue_key = ""
+        self.issue_id = ""
+        self.zEncKeyFld = ""
+        self.zEncKeyVal = ""
+        self.title = ""
