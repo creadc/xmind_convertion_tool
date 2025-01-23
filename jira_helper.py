@@ -144,12 +144,9 @@ class JiraHelper:
             # 新建失败
             if response.status_code not in [200, 201]:
                 logging.error(f"创建用例失败，具体报错为: {response.text}")
-                return None
+                return False
             # 新建成功
             res = json.loads(response.text)
-            id = res['id']
-            key = res['key']
-            print(f"新建用例成功：{key}")
             return res
         except Exception as e:
             logging.error(f"创建用例异常: {e}")
@@ -168,6 +165,20 @@ class JiraHelper:
             logging.error(f"添加测试结果异常：{e}")
             raise e
 
+    def collect_issue_info(self, task_id):
+        """获取用例的信息"""
+        try:
+            r = requests.get(self.base_url + "/browse/" + task_id, headers=self.headers)
+            if r.headers.get('Set-Cookie'):
+                self.headers['cookie'] = self.__add_cookie(self.headers.get('cookie'), r.headers.get('Set-Cookie')[
+                                                                                           :r.headers.get(
+                                                                                               'Set-Cookie').rfind(
+                                                                                               ";")])
+            return r
+        except Exception as e:
+            logging.error(f"添加用例信息异常：{e}")
+            raise e
+
     def upload_test_cases(self, df):
         # 已创建用例数目
         issue_count = 0
@@ -180,11 +191,18 @@ class JiraHelper:
             # 用例名不为空，说明是新用例，需要创建ET
             if case_name:
                 try:
-                    new_issue_id = self.create_case(row)
-                    if new_issue_id:
+                    res = self.create_case(row)
+                    if res:
+                        new_issue_id = res['id']
+                        new_issue_key = res['key']
                         issue_id = new_issue_id
                         issue_count += 1
                         step_count = 0
+                        print(f"新建用例成功：{new_issue_key}")
+                        # 处理请求头
+                        res = self.collect_issue_info(new_issue_key)
+                        if res:
+                            headers['a'] = 'a'
                     else:
                         logging.error(f"创建第{issue_count + 1}个用例失败")
                         return False
