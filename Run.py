@@ -23,7 +23,6 @@ class JiraLoginApp:
 
         # 如果登录失败或用户名密码为空，显示登录窗口
         self.create_login_widgets()
-        self.create_login_widgets()
 
     def create_login_widgets(self):
         """创建登录界面"""

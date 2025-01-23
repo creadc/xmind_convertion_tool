@@ -4,7 +4,6 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 from xmind_analyze import TestCaseManager
 from pandastable import Table
-from jira_helper import JiraHelper
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -71,13 +70,12 @@ class XMindConvertionApp:
         # 用例级别
         tk.Label(self.root, text="用例级别").grid(row=4, column=0, padx=10, pady=10, sticky="w")
         self.case_level = ttk.Combobox(self.root, values=self.case_level, state="readonly")
-        self.case_level.set("未分级")
+        self.case_level.set("3")
         self.case_level.grid(row=4, column=1, padx=10, pady=10, sticky="w")
 
         # 用例类型
         tk.Label(self.root, text="用例类型").grid(row=5, column=0, padx=10, pady=10, sticky="w")
         self.case_type = ttk.Combobox(self.root, values=self.case_type, state="readonly")
-        self.case_type.set("无")
         self.case_type.grid(row=5, column=1, padx=10, pady=10, sticky="w")
 
         # 标签
@@ -99,6 +97,7 @@ class XMindConvertionApp:
         tk.Button(self.root, text="预览", command=self.preview_test_cases).grid(row=8, column=0, columnspan=4, pady=20)
 
     def parse_field_data(self, field_data):
+        """初始化字段信息"""
         print(field_data)
         self.scenario = field_data["功能场景"]
         self.scenario_main = list(field_data["功能场景"].keys())
@@ -114,13 +113,27 @@ class XMindConvertionApp:
             self.xmind_path.set(file_path)
 
     def update_scenarios(self, event):
-        # 更新子功能场景
+        """更新子功能场景"""
         self.scenario_sub["values"] = self.scenario[self.scenario_main.get()]
         self.scenario_sub.set("")
 
+    def verify_input(self):
+        """校验"""
+        fields = [
+            (self.xmind_path.get(), "xmind文件位置"),
+            (self.scenario_main.get(), "功能场景"),
+            (self.effect_version.get(), "影响版本"),
+            (self.case_level.get(), "用例级别"),
+        ]
+        for value, field_name in fields:
+            if not value:
+                messagebox.showerror("错误", f"请确保{field_name}已填写！")
+                return False
+
+        return True
+
     def preview_test_cases(self):
-        if not self.xmind_path.get() or not self.scenario_main.get() or not self.effect_version.get():
-            messagebox.showerror("错误", "请确保xmind文件位置、功能场景和影响版本已填写！")
+        if not self.verify_input():
             return
 
         try:
@@ -142,22 +155,24 @@ class XMindConvertionApp:
         self.table_frame = tk.Frame(self.root)
         self.table_frame.grid(row=9, column=0, columnspan=4, pady=10, sticky="nsew")
 
-        # 基本字段和附加信息
+        # 附加信息
+        a = self.scenario_sub.get()
         additional_data = {
-            "功能场景": f"{self.scenario_main.get()}-{self.scenario_sub.get()}",
             "影响版本": self.effect_version.get(),
+            "功能场景": f"{self.scenario_main.get()}-{self.scenario_sub.get()}" if self.scenario_sub.get() else self.scenario_main.get(),
+            "测试用例来源": self.case_source.get(),
             "用例级别": self.case_level.get(),
             "用例类型": self.case_type.get(),
             "标签": self.tags.get(),
         }
 
         # 构造 DataFrame
-        df = pd.DataFrame(self.test_cases, columns=["用例名称", "测试步骤", "预期结果", "测试数据"])
+        df = pd.DataFrame(self.test_cases, columns=["用例名称（主题）", "测试步骤", "预期结果", "测试数据"])
         for key, value in additional_data.items():
             df[key] = value
 
         # 仅在用例名称非空的行展示附加字段
-        df.loc[df["用例名称"].isnull(), additional_data.keys()] = None
+        df.loc[df["用例名称（主题）"].isnull(), additional_data.keys()] = None
 
         # 使用 pandastable 展示
         self.table = Table(self.table_frame, dataframe=df, editable=True, width=1000, height=500)
@@ -183,7 +198,10 @@ class XMindConvertionApp:
         if messagebox.askyesno("确认", "确定要上传用例到 JIRA 吗？"):
             try:
                 df = self.table.model.df
-                self.jira_helper.upload_test_cases(df)
-                messagebox.showinfo("成功", "用例成功上传到 JIRA！")
+                result = self.jira_helper.upload_test_cases(df)
+                if result:
+                    messagebox.showinfo("成功", "用例成功上传到 JIRA！")
+                else:
+                    messagebox.showerror("错误", f"上传到 JIRA 失败，详情请看日志！")
             except Exception as e:
-                messagebox.showerror("错误", f"上传到 JIRA 失败: {e}")
+                messagebox.showerror("错误", f"上传到 JIRA 异常: {e}，详情请看日志！")

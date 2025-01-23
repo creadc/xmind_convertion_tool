@@ -1,3 +1,5 @@
+import json
+
 import requests
 import logging
 from bs4 import BeautifulSoup
@@ -10,24 +12,20 @@ class JiraHelper:
         self.base_url = "https://work.fineres.com"
         self.token = None
         self.user = ''
-        self.__headers = {
+        self.headers = {
             "content-Type": "application/json"
         }
-        # issuetype_map存储issuetype的name和id的对照表{"测试":"123"}
-        self.issuetype_map = {}
-        # project_map存储project的name和key的对照表{"质量管理":"QA"}
-        self.project_map = {}
         # field_map存储field的name和fieldId的对照表{"优先级":"priority"}
         self.field_map = {}
-        self.project = None
-        self.issuetype = None
+        self.project = "ET"
+        self.issuetype = "测试"
 
     def login(self, username, password):
         """登录"""
         try:
             response = requests.post(
                 f"{self.base_url}/rest/auth/1/session",
-                headers=self.__headers,
+                headers=self.headers,
                 json={"username": username, "password": password},
                 timeout=10
             )
@@ -40,7 +38,7 @@ class JiraHelper:
                 session = response.json()['session']
                 self.token = session['value']
                 cookie = session['name'] + "=" + session['value']
-                self.__headers['cookie'] = self.__add_cookie(self.__headers.get('cookie'), cookie)
+                self.headers['cookie'] = self.__add_cookie(self.headers.get('cookie'), cookie)
                 logging.info("JIRA 登录成功")
                 self.jira = Jira(url=self.base_url, username=username, password=password)
                 return True
@@ -52,8 +50,7 @@ class JiraHelper:
         """获取新建用例时需要的字段信息，包括功能场景、测试用例来源、用例级别、用例类型"""
         try:
             data = {'pid': '14400'}
-
-            headers = self.__headers.copy()
+            headers = self.headers.copy()
             headers['Content-Type'] = 'application/x-www-form-urlencoded'
             response = requests.post(
                 f"{self.base_url}/secure/QuickCreateIssue!default.jspa?decorator=none",
@@ -108,22 +105,103 @@ class JiraHelper:
             logging.error(f"获取 JIRA 字段信息异常: {e}")
             raise e
 
-    def upload_test_cases(self, df):
-        for _, row in df.iterrows():
+    def create_case(self, row):
+        """创建用例"""
+        # 生成功能场景
+        scenario = row['功能场景']
+        parts = scenario.split("-")
+        if len(parts) == 1 or (len(parts) == 2 and parts[1] == '无'):
+            scenario = {"value": parts[0]}
+        elif len(parts) == 2 and parts[1] != '无':
+            # 如果有两个元素
+            scenario = {"value": parts[0], "child": {"value": parts[1]}}
+        else:
+            # 如果不符合要求，返回错误信息
+            logging.error(f"功能场景有误：{scenario}")
+            return False
+        data = {
+            "fields": {
+                "project": {"key": self.project},
+                "issuetype": {"name": self.issuetype},
+                "summary": row['用例名称（主题）'],
+                "customfield_10809": scenario,
+                "versions": [{"name": row['影响版本']}],
+                "customfield_10545": {"value": row['测试用例来源']},
+                "customfield_11300": {"value": row['用例级别']}
+            }
+        }
+        if row['用例类型'] and row['用例类型'] != '无':
+            data["customfield_10546"] = {"value": row['用例类型']}
+        if row['标签']:
+            data["labels"] = {"value": row['标签']}
+        print(data)
+        try:
             response = requests.post(
                 f"{self.base_url}/rest/api/2/issue",
-                headers={"Authorization": f"Bearer {self.token}"},
-                json={
-                    "fields": {
-                        "project": {"key": "PROJECT_KEY"},
-                        "summary": row["用例名称"],
-                        "description": row["测试步骤"],
-                        "issuetype": {"name": "Test Case"},
-                    }
-                },
+                headers=self.headers,
+                json=data,
             )
-            if response.status_code != 201:
-                raise Exception(f"上传失败: {response.text}")
+            # 新建失败
+            if response.status_code not in [200, 201]:
+                logging.error(f"创建用例失败，具体报错为: {response.text}")
+                return None
+            # 新建成功
+            res = json.loads(response.text)
+            id = res['id']
+            key = res['key']
+            print(f"新建用例成功：{key}")
+            return res
+        except Exception as e:
+            logging.error(f"创建用例异常: {e}")
+            raise e
+
+    def add_test_step(self, issue_id, step, data, result, headers):
+        data = {"step": step, "data": data, "result": result, "customFieldValues": {}}
+        print(f"添加测试步骤：{data}")
+        try:
+            response = requests.post(self.base_url + "/rest/zephyr/latest/teststep/" + issue_id, headers=headers, json=data)
+            if response.status_code != 200:
+                logging.error(f"添加测试步骤失败，详情为: {response.text}")
+                return False
+            return True
+        except Exception as e:
+            logging.error(f"添加测试结果异常：{e}")
+            raise e
+
+    def upload_test_cases(self, df):
+        # 已创建用例数目
+        issue_count = 0
+        # 添加用例的步骤
+        step_count = 0
+        issue_id = ''
+        headers = self.headers
+        for _, row in df.iterrows():
+            case_name = row['用例名称（主题）']
+            # 用例名不为空，说明是新用例，需要创建ET
+            if case_name:
+                try:
+                    new_issue_id = self.create_case(row)
+                    if new_issue_id:
+                        issue_id = new_issue_id
+                        issue_count += 1
+                        step_count = 0
+                    else:
+                        logging.error(f"创建第{issue_count + 1}个用例失败")
+                        return False
+                except Exception as e:
+                    logging.error(f"创建第{issue_count + 1}个用例异常：{e}")
+                    return False
+            # 添加步骤
+            try:
+                res = self.add_test_step(issue_id, row["测试步骤"], row["测试数据"], row["预期结果"], headers)
+                if res:
+                    step_count += 1
+                    continue
+                else:
+                    return False
+            except Exception as e:
+                logging.error(f"给第{issue_count+1}个用例添加第{step_count}个步骤时失败：{e}")
+                return False
 
     @staticmethod
     def __add_cookie(cookie_old, cookie_add):
