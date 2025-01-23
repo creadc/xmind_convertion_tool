@@ -196,12 +196,40 @@ class XMindConvertionApp:
 
     def upload_to_jira(self):
         if messagebox.askyesno("确认", "确定要上传用例到 JIRA 吗？"):
-            try:
-                df = self.table.model.df
-                result = self.jira_helper.upload_test_cases(df)
-                if result:
-                    messagebox.showinfo("成功", "用例成功上传到 JIRA！")
-                else:
-                    messagebox.showerror("错误", f"上传到 JIRA 失败，详情请看日志！")
-            except Exception as e:
-                messagebox.showerror("错误", f"上传到 JIRA 异常: {e}，详情请看日志！")
+            df = self.table.model.df
+            self.create_upload_status_box()  # 创建用于显示上传进度的文本框
+            self.update_status("开始上传用例到 JIRA...")
+            result = self.jira_helper.upload_test_cases(df, self.update_status)
+            if result:
+                self.update_status("所有用例已成功上传到 JIRA！")
+            else:
+                self.update_status("部分用例上传到 JIRA 失败，请查看日志！")
+
+    def create_upload_status_box(self):
+        """创建用于显示上传进度的文本框"""
+        if not hasattr(self, "status_box"):
+            # 创建一个 Frame 用于放置文本框和滚动条
+            self.status_frame = tk.Frame(self.root)
+            self.status_frame.grid(row=11, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
+
+            # 创建滚动条
+            self.scrollbar = tk.Scrollbar(self.status_frame, orient=tk.VERTICAL)
+            self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            # 创建文本框，并绑定滚动条
+            self.status_box = tk.Text(self.status_frame, height=10, width=100, state="disabled",
+                                      yscrollcommand=self.scrollbar.set)
+            self.status_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.scrollbar.config(command=self.status_box.yview)
+
+            # 初始化文本框内容
+            self.status_box.config(state="normal")
+            self.status_box.insert(tk.END, "上传进度：\n")
+            self.status_box.config(state="disabled")
+
+    def update_status(self, message):
+        """更新上传进度文本框的内容，并自动滚动到最新内容"""
+        self.status_box.config(state="normal")
+        self.status_box.insert(tk.END, message + "\n")
+        self.status_box.config(state="disabled")
+        self.status_box.see(tk.END)  # 自动滚动到最新内容

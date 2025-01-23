@@ -190,11 +190,9 @@ class JiraHelper:
             logging.error(f"获取用例信息异常：{e}")
             raise e
 
-    def upload_test_cases(self, df):
-        # 已创建用例数目
-        issue_count = 0
-        # 添加用例的步骤
-        step_count = 0
+    def upload_test_cases(self, df, status_callback=None):
+        issue_count = 0  # 已创建用例数目
+        step_count = 0  # 添加用例的步骤
         issue_id = ''
         headers = self.headers
         for _, row in df.iterrows():
@@ -211,21 +209,22 @@ class JiraHelper:
                         issue_id = new_issue_id
                         issue_count += 1
                         step_count = 0
-                        print(f"新建用例成功：{new_issue_key}")
+                        status_callback(f"创建用例 {new_issue_key} 成功")
                     else:
-                        logging.error(f"创建第{issue_count + 1}个用例失败")
+                        status_callback(f"创建第{issue_count + 1}个用例失败，用例名称为'{case_name}'")
                         return False
                 except Exception as e:
-                    logging.error(f"创建第{issue_count + 1}个用例异常")
-                    raise e
+                    logging.error(f"创建第{issue_count + 1}个用例异常，，用例名称为'{case_name}',错误信息：{e}")
+                    status_callback(f"创建第{issue_count + 1}个用例异常，，用例名称为'{case_name}'")
+                    return False
                 try:
                     # 处理请求头
                     info = self.collect_issue_info(new_issue_key)
                     if info.issue_id != "":
                         headers[info.zEncKeyFld] = info.zEncKeyVal
                 except Exception as e:
-                    logging.error(f"获取用例【{new_issue_key}】信息异常")
-                    raise e
+                    logging.info(f"获取用例【{new_issue_key}】信息异常，错误信息：{e}")
+                    status_callback(f"获取用例【{new_issue_key}】信息异常")
             # 添加步骤
             try:
                 res = self.add_test_step(issue_id, row["测试步骤"], row["测试数据"], row["预期结果"], headers)
@@ -233,11 +232,13 @@ class JiraHelper:
                     step_count += 1
                     continue
                 else:
-                    logging.error(f"给第{issue_count + 1}个用例添加第{step_count}个步骤时失败")
+                    status_callback(f"给用例{case_name}添加第{step_count}个步骤时失败")
                     return False
             except Exception as e:
-                logging.error(f"给第{issue_count+1}个用例添加第{step_count}个步骤时异常：{e}")
+                logging.error(f"给用例{case_name}添加第{step_count}个步骤时异常：{e}")
+                status_callback(f"给用例{case_name}添加第{step_count}个步骤时异常")
                 return False
+        return True
 
     @staticmethod
     def __add_cookie(cookie_old, cookie_add):
