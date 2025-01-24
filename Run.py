@@ -89,7 +89,7 @@ class JiraLoginApp:
             # 进入主界面
             self.open_main_app()
         except Exception as e:
-            messagebox.showerror("错误", f"解析jira字段信息异常，请确保JIRA当前项目为ET")
+            messagebox.showerror("错误", f"打开主界面报错：{e}")
 
     def create_popup(self, text):
         """创建弹窗"""
