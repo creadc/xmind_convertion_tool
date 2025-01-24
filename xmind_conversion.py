@@ -39,10 +39,6 @@ class XMindConvertionApp:
 
     def create_widgets(self):
         """创建 UI 界面"""
-        self.root.title("xmind转换工具")
-        self.root.geometry("600x400")  # 调整窗口尺寸
-        self.set_font()  # 设置字体
-
         # 配置区域
         self.config_frame = tk.Frame(self.root)
         self.config_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
