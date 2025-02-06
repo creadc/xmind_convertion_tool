@@ -1,7 +1,8 @@
 import logging
 import pandas as pd
 import ttkbootstrap as ttk
-from tkinter import filedialog, messagebox
+from ttkbootstrap.dialogs import Messagebox
+from tkinter import filedialog
 from xmind_analyze import TestCaseManager
 from pandastable import Table
 import warnings
@@ -143,7 +144,7 @@ class XMindConvertionApp:
 
         except Exception as e:
             logging.error(e)
-            messagebox.showerror("错误", f"预览失败: {e}\n")
+            Messagebox.show_error("错误", f"预览失败: {e}\n")
 
     def show_preview_table(self):
         self.table_frame.grid()  # 显示表格区域
@@ -170,7 +171,8 @@ class XMindConvertionApp:
         self.table.show()
 
     def upload_to_jira(self):
-        if messagebox.askyesno("确认", "确定要上传用例到 JIRA 吗？"):
+        result = Messagebox.yesno("确定要上传用例到 JIRA 吗？")
+        if result == '确认':
             df = self.table.model.df
             self.update_status("开始上传用例到 JIRA...")
             result = self.jira_helper.upload_test_cases(df, self.update_status)
@@ -216,7 +218,7 @@ class XMindConvertionApp:
         ]
         for value, field_name in fields:
             if not value:
-                messagebox.showerror("错误", f"请确保{field_name}已填写！\n")
+                Messagebox.show_error(f"请确保{field_name}已填写！\n")
                 return False
         return True
 
