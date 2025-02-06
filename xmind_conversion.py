@@ -1,6 +1,7 @@
+import logging
 import pandas as pd
-import tkinter as tk
-from tkinter import filedialog, ttk, messagebox, font
+import ttkbootstrap as ttk
+from tkinter import filedialog, messagebox
 from xmind_analyze import TestCaseManager
 from pandastable import Table
 import warnings
@@ -11,6 +12,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 class XMindConvertionApp:
     def __init__(self, root, jira_helper, field_data):
         self.root = root
+
         self.jira_helper = jira_helper
 
         self.xmind_path = None  # xmind地址
@@ -40,61 +42,61 @@ class XMindConvertionApp:
     def create_widgets(self):
         """创建 UI 界面"""
         # 配置区域
-        self.config_frame = tk.Frame(self.root)
+        self.config_frame = ttk.Frame(self.root)
         self.config_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
-        tk.Label(self.config_frame, text="xmind文件位置").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.xmind_path = tk.StringVar()
-        self.xmind_entry = tk.Entry(self.config_frame, textvariable=self.xmind_path, width=50)
-        self.xmind_entry.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
-        tk.Button(self.config_frame, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4, padx=5,
+        ttk.Label(self.config_frame, text="xmind文件位置").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.xmind_path = ttk.StringVar()
+        self.xmind_path_widget = ttk.Entry(self.config_frame, textvariable=self.xmind_path, width=50)
+        self.xmind_path_widget.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
+        ttk.Button(self.config_frame, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4, padx=5,
                                                                                                pady=5)
 
-        tk.Label(self.config_frame, text="功能场景").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-        self.scenario_main = ttk.Combobox(self.config_frame, values=self.scenario_main, state="readonly")
-        self.scenario_main.grid(row=1, column=1, padx=5, pady=5, sticky="w")
-        self.scenario_main.bind("<<ComboboxSelected>>", self.update_scenarios)
-        self.scenario_sub = ttk.Combobox(self.config_frame, state="readonly")
-        self.scenario_sub.grid(row=1, column=2, columnspan=2, padx=0, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="功能场景").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.scenario_main_widget = ttk.Combobox(self.config_frame, values=self.scenario_main, state="readonly")
+        self.scenario_main_widget.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.scenario_main_widget.bind("<<ComboboxSelected>>", self.update_scenarios)
+        self.scenario_sub_widget = ttk.Combobox(self.config_frame, state="readonly")
+        self.scenario_sub_widget.grid(row=1, column=2, columnspan=2, padx=0, pady=5, sticky="w")
 
-        tk.Label(self.config_frame, text="影响版本").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.effect_version = ttk.Combobox(self.config_frame, values=self.effect_version, state="readonly")
-        self.effect_version.set("4.2")
-        self.effect_version.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="影响版本").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        self.effect_version_widget = ttk.Combobox(self.config_frame, values=self.effect_version, state="readonly")
+        self.effect_version_widget.set("4.2")
+        self.effect_version_widget.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
-        tk.Label(self.config_frame, text="用例来源").grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        self.case_source = ttk.Combobox(self.config_frame, values=self.case_source, state="readonly")
-        self.case_source.set("测试规划")
-        self.case_source.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="用例来源").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.case_source_widget = ttk.Combobox(self.config_frame, values=self.case_source, state="readonly")
+        self.case_source_widget.set("测试规划")
+        self.case_source_widget.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
-        tk.Label(self.config_frame, text="用例级别").grid(row=4, column=0, padx=5, pady=5, sticky="w")
-        self.case_level = ttk.Combobox(self.config_frame, values=self.case_level, state="readonly")
-        self.case_level.set("3")
-        self.case_level.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="用例级别").grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        self.case_level_widget = ttk.Combobox(self.config_frame, values=self.case_level, state="readonly")
+        self.case_level_widget.set("3")
+        self.case_level_widget.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
-        tk.Label(self.config_frame, text="用例类型").grid(row=5, column=0, padx=5, pady=5, sticky="w")
-        self.case_type = ttk.Combobox(self.config_frame, values=self.case_type, state="readonly")
-        self.case_type.grid(row=5, column=1, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="用例类型").grid(row=5, column=0, padx=5, pady=5, sticky="w")
+        self.case_type_widget = ttk.Combobox(self.config_frame, values=self.case_type, state="readonly")
+        self.case_type_widget.grid(row=5, column=1, padx=5, pady=5, sticky="w")
 
-        tk.Label(self.config_frame, text="标签").grid(row=6, column=0, padx=5, pady=5, sticky="w")
-        self.tags = tk.Entry(self.config_frame, width=20)
-        self.tags.grid(row=6, column=1, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="标签").grid(row=6, column=0, padx=5, pady=5, sticky="w")
+        self.tags_widget = ttk.Entry(self.config_frame, width=20)
+        self.tags_widget.grid(row=6, column=1, padx=5, pady=5, sticky="w")
 
-        tk.Label(self.config_frame, text="链接类型").grid(row=7, column=0, padx=5, pady=5, sticky="w")
-        self.link_type = ttk.Combobox(self.config_frame, values=["关联的任务"], state="readonly")
-        self.link_type.set("关联的任务")
-        self.link_type.grid(row=7, column=1, padx=5, pady=5, sticky="w")
-        tk.Label(self.config_frame, text="问题").grid(row=7, column=2, padx=5, pady=5, sticky="w")
-        self.link_issue = tk.Entry(self.config_frame, width=20)
-        self.link_issue.grid(row=7, column=3, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="链接类型").grid(row=7, column=0, padx=5, pady=5, sticky="w")
+        self.link_type_widget = ttk.Combobox(self.config_frame, values=["关联的任务"], state="readonly")
+        self.link_type_widget.set("关联的任务")
+        self.link_type_widget.grid(row=7, column=1, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_frame, text="问题").grid(row=7, column=2, padx=5, pady=5, sticky="w")
+        self.link_issue_widget = ttk.Entry(self.config_frame, width=20)
+        self.link_issue_widget.grid(row=7, column=3, padx=5, pady=5, sticky="w")
 
-        tk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=8, column=0, columnspan=2,
+        ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=8, column=0, columnspan=2,
                                                                                         pady=5)
 
         # 默认隐藏的按钮和区域
-        self.generate_excel_btn = tk.Button(self.config_frame, text="生成Excel", command=self.generate_excel)
+        self.generate_excel_btn = ttk.Button(self.config_frame, text="生成Excel", command=self.generate_excel)
         self.generate_excel_btn.grid(row=8, column=2, columnspan=2, pady=5)
-        self.upload_btn = tk.Button(self.config_frame, text="一键上传", command=self.upload_to_jira)
+        self.upload_btn = ttk.Button(self.config_frame, text="一键上传", command=self.upload_to_jira)
         self.upload_btn.grid(row=8, column=4, columnspan=2, pady=5)
 
         self.generate_excel_btn.grid_remove()
@@ -109,17 +111,17 @@ class XMindConvertionApp:
         self.log_frame.grid_remove()
 
     def create_table(self):
-        self.table_frame = tk.Frame(self.root)
+        self.table_frame = ttk.Frame(self.root)
         self.table_frame.grid(row=1, column=0, columnspan=7, pady=5, sticky="nsew")
 
     def create_log_frame(self):
-        self.log_frame = tk.Frame(self.root)
+        self.log_frame = ttk.Frame(self.root)
         self.log_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
 
-        self.log_text = tk.Text(self.log_frame, height=10, width=70)
-        self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.log_scrollbar = tk.Scrollbar(self.log_frame, orient=tk.VERTICAL)
-        self.log_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.log_text = ttk.Text(self.log_frame, height=10, width=70)
+        self.log_text.pack(side=ttk.LEFT, fill=ttk.BOTH, expand=True)
+        self.log_scrollbar = ttk.Scrollbar(self.log_frame, orient=ttk.VERTICAL)
+        self.log_scrollbar.pack(side=ttk.RIGHT, fill=ttk.Y)
         self.log_text.config(yscrollcommand=self.log_scrollbar.set)
         self.log_scrollbar.config(command=self.log_text.yview)
 
@@ -133,14 +135,15 @@ class XMindConvertionApp:
             manager.parse_test_cases()
             self.test_cases = manager.test_cases
 
-            self.root.geometry("1100x1000")
+            self.root.geometry("1500x1000")
             self.show_preview_table()
             self.generate_excel_btn.grid()  # 显示生成Excel按钮
             self.upload_btn.grid()  # 显示一键上传按钮
             self.log_frame.grid()  # 显示日志区域
 
         except Exception as e:
-            messagebox.showerror("错误", f"预览失败: {e}")
+            logging.error(e)
+            messagebox.showerror("错误", f"预览失败: {e}\n")
 
     def show_preview_table(self):
         self.table_frame.grid()  # 显示表格区域
@@ -149,12 +152,12 @@ class XMindConvertionApp:
         self.create_table()
 
         additional_data = {
-            "影响版本": self.effect_version.get(),
-            "功能场景": f"{self.scenario_main.get()}-{self.scenario_sub.get()}" if self.scenario_sub.get() else self.scenario_main.get(),
-            "测试用例来源": self.case_source.get(),
-            "用例级别": self.case_level.get(),
-            "用例类型": self.case_type.get(),
-            "标签": self.tags.get(),
+            "影响版本": self.effect_version_widget.get(),
+            "功能场景": f"{self.scenario_main_widget.get()}-{self.scenario_sub_widget.get()}" if self.scenario_sub_widget.get() else self.scenario_main_widget.get(),
+            "测试用例来源": self.case_source_widget.get(),
+            "用例级别": self.case_level_widget.get(),
+            "用例类型": self.case_type_widget.get(),
+            "标签": self.tags_widget.get(),
         }
 
         df = pd.DataFrame(self.test_cases, columns=["用例名称（主题）", "测试步骤", "预期结果", "测试数据"])
@@ -178,9 +181,9 @@ class XMindConvertionApp:
 
     def update_status(self, message):
         self.log_text.config(state="normal")
-        self.log_text.insert(tk.END, message + "\n")
+        self.log_text.insert(ttk.END, message + "\n")
         self.log_text.config(state="disabled")
-        self.log_text.see(tk.END)
+        self.log_text.see(ttk.END)
         self.log_text.update_idletasks()
 
     def parse_field_data(self, field_data):
@@ -191,37 +194,29 @@ class XMindConvertionApp:
         self.case_level = field_data["用例级别"]
         self.case_type = field_data["用例类型"]
 
-    def set_font(self):
-        # 全局设置默认字体
-        default_font = font.nametofont("TkDefaultFont")
-        default_font.configure(size=12)
-
-        # 配置 ttk.Combobox 样式
-        style = ttk.Style()
-        style.configure("TCombobox", font=("微软雅黑", 12))  # 设置下拉框字体
-        style.configure("TEntry", font=("微软雅黑", 12))  # 设置下拉框输入框字体
-
     def select_xmind_file(self):
         """选择xmind文件"""
         file_path = filedialog.askopenfilename(filetypes=[("XMind Files", "*.xmind")])
         if file_path:
             self.xmind_path.set(file_path)
+            self.xmind_path_widget.delete(0, ttk.END)
+            self.xmind_path_widget.insert(0, file_path)
 
     def update_scenarios(self, event):
         """更新子功能场景"""
-        self.scenario_sub["values"] = self.scenario[self.scenario_main.get()]
-        self.scenario_sub.set("")
+        self.scenario_sub_widget["values"] = self.scenario[self.scenario_main_widget.get()]
+        self.scenario_sub_widget.set("")
 
     def verify_input(self):
         fields = [
-            (self.xmind_path.get(), "xmind文件位置"),
-            (self.scenario_main.get(), "功能场景"),
-            (self.effect_version.get(), "影响版本"),
-            (self.case_level.get(), "用例级别"),
+            (self.xmind_path_widget.get(), "xmind文件位置"),
+            (self.scenario_main_widget.get(), "功能场景"),
+            (self.effect_version_widget.get(), "影响版本"),
+            (self.case_level_widget.get(), "用例级别"),
         ]
         for value, field_name in fields:
             if not value:
-                messagebox.showerror("错误", f"请确保{field_name}已填写！")
+                messagebox.showerror("错误", f"请确保{field_name}已填写！\n")
                 return False
         return True
 
