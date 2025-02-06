@@ -1,6 +1,5 @@
 import tkinter as tk
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
 from ttkbootstrap.dialogs import Messagebox
 from configparser import ConfigParser
 from jira_helper import JiraHelper
@@ -16,8 +15,8 @@ class JiraLoginApp:
         # 从配置文件中获取用户名和密码
         self.config = ConfigParser()
         self.config.read("config.ini")
-        self.jira_username_var = tk.StringVar(value=self.config.get('jira', 'username', fallback=''))
-        self.jira_password_var = tk.StringVar(value=self.config.get('jira', 'password', fallback=''))
+        self.jira_username_var = ttk.StringVar(value=self.config.get('jira', 'username', fallback=''))
+        self.jira_password_var = ttk.StringVar(value=self.config.get('jira', 'password', fallback=''))
 
         # 如果用户名和密码存在，直接登录
         # if self.jira_username_var.get() and self.jira_password_var.get():
@@ -36,7 +35,7 @@ class JiraLoginApp:
         self.password_entry = ttk.Entry(self.root, textvariable=self.jira_password_var, show="*")
         self.password_entry.grid(row=1, column=1, padx=10, pady=10)
 
-        tk.Button(self.root, text="登录", command=self.handle_login_button).grid(row=2, column=0, columnspan=2, pady=20)
+        ttk.Button(self.root, text="登录", command=self.handle_login_button).grid(row=2, column=0, columnspan=2, pady=20)
 
     def handle_login_button(self):
         """处理登录按钮点击事件"""
@@ -83,13 +82,8 @@ class JiraLoginApp:
             self.destroy_popup(popup)
             Messagebox.show_error(f"获取jira字段信息异常：{e}")
 
-        # 解析 JIRA 字段信息
-        try:
-            # 进入主界面
-            self.open_main_app()
-        except Exception as e:
-            print(e)
-            Messagebox.show_error(f"打开主界面报错：{e}")
+        # 解析 JIRA 字段信息,进入主界面
+        self.open_main_app()
 
     def create_popup(self, text):
         """创建弹窗"""
@@ -112,11 +106,14 @@ class JiraLoginApp:
 
     def open_main_app(self):
         """打开主界面"""
-        self.root.destroy()
-        main_root = ttk.Window(title="xmind转换工具", themename="litera", size=(600, 400))
-        main_root.place_window_center()
-        XMindConvertionApp(main_root, self.jira_helper, self.field_data)
-        main_root.mainloop()
+        self.root.destroy()  # 销毁登录窗口
+        try:
+            main_root = ttk.Window(title="xmind转换工具", themename="litera", size=(600, 600))
+            main_root.place_window_center()
+            XMindConvertionApp(main_root, self.jira_helper, self.field_data)
+            main_root.mainloop()
+        except Exception as e:
+            Messagebox.show_error(f"打开主界面报错：{e}")
 
 
 if __name__ == "__main__":
