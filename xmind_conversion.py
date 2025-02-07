@@ -27,12 +27,12 @@ class XMindConvertionApp:
         self.tags = None  # 标签
         self.link_type = None  # 链接类型
         self.link_issue = None  # 链接的问题
-
         self.test_cases = []
-        self.table_frame = None
-        self.table = None
 
-        self.log_frame = None
+        self.config_frame = None  # 配置区域
+        self.table_frame = None  # 表格区域
+        self.log_frame = None  # 日志区域
+        self.table = None
         self.log_text = None
         self.status_box = None
 
@@ -42,16 +42,34 @@ class XMindConvertionApp:
 
     def create_widgets(self):
         """创建 UI 界面"""
-        # 配置区域
-        self.config_frame = ttk.Frame(self.root)
-        self.config_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        # 创建 Notebook
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
+        # 创建 Tabs
+        self.config_frame = ttk.Frame(self.notebook)
+        self.table_frame = ttk.Frame(self.notebook)
+        self.log_frame = ttk.Frame(self.notebook)
+
+        self.notebook.add(self.config_frame, text="配置")
+        self.notebook.add(self.table_frame, text="测试用例", state="disabled")
+        self.notebook.add(self.log_frame, text="日志", state="disabled")
+
+        # 配置区域
+        self.init_config_frame()
+
+        # 表格区域
+        self.init_table_frame()
+
+        # 日志 Tab
+        self.init_log_frame()
+
+    def init_config_frame(self):
         ttk.Label(self.config_frame, text="xmind文件位置").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.xmind_path = ttk.StringVar()
         self.xmind_path_widget = ttk.Entry(self.config_frame, textvariable=self.xmind_path, width=50)
         self.xmind_path_widget.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
-        ttk.Button(self.config_frame, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4, padx=5,
-                                                                                               pady=5)
+        ttk.Button(self.config_frame, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4, padx=5, pady=5)
 
         ttk.Label(self.config_frame, text="功能场景").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.scenario_main_widget = ttk.Combobox(self.config_frame, values=self.scenario_main, state="readonly")
@@ -91,67 +109,39 @@ class XMindConvertionApp:
         self.link_issue_widget = ttk.Entry(self.config_frame, width=20)
         self.link_issue_widget.grid(row=7, column=3, padx=5, pady=5, sticky="w")
 
-        ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=8, column=0, columnspan=2,
-                                                                                        pady=5)
+        ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=8, column=0, columnspan=2, pady=5)
 
-        # 默认隐藏的按钮和区域
-        self.generate_excel_btn = ttk.Button(self.config_frame, text="生成Excel", command=self.generate_excel)
-        self.generate_excel_btn.grid(row=8, column=2, columnspan=2, pady=5)
-        self.upload_btn = ttk.Button(self.config_frame, text="一键上传", command=self.upload_to_jira)
-        self.upload_btn.grid(row=8, column=4, columnspan=2, pady=5)
+    def init_table_frame(self):
+        self.back_to_config_btn = ttk.Button(self.table_frame, text="返回", command=lambda: self.switch_tab(0))
+        self.back_to_config_btn.grid(row=1, column=0, pady=5)
+        self.generate_excel_btn = ttk.Button(self.table_frame, text="生成Excel", command=self.generate_excel)
+        self.generate_excel_btn.grid(row=1, column=1, pady=5)
+        self.upload_btn = ttk.Button(self.table_frame, text="一键上传", command=self.upload_to_jira)
+        self.upload_btn.grid(row=1, column=2, pady=5)
 
-        self.generate_excel_btn.grid_remove()
-        self.upload_btn.grid_remove()
-
-        # 表格区域（默认隐藏）
-        self.create_table()
-        self.table_frame.grid_remove()
-
-        # 日志区域（默认隐藏）
-        self.create_log_frame()
-        self.log_frame.grid_remove()
-
-    def create_table(self):
-        self.table_frame = ttk.Frame(self.root)
-        self.table_frame.grid(row=1, column=0, columnspan=7, pady=5, sticky="nsew")
-
-    def create_log_frame(self):
-        self.log_frame = ttk.Frame(self.root)
-        self.log_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
-
+    def init_log_frame(self):
         self.log_text = ttk.Text(self.log_frame, height=10, width=70)
-        self.log_text.pack(side=ttk.LEFT, fill=ttk.BOTH, expand=True)
-        self.log_scrollbar = ttk.Scrollbar(self.log_frame, orient=ttk.VERTICAL)
-        self.log_scrollbar.pack(side=ttk.RIGHT, fill=ttk.Y)
+        self.log_text.grid(row=0, column=0, sticky="nsew")
+        self.log_scrollbar = ttk.Scrollbar(self.log_frame, orient=ttk.VERTICAL, command=self.log_text.yview)
+        self.log_scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_text.config(yscrollcommand=self.log_scrollbar.set)
-        self.log_scrollbar.config(command=self.log_text.yview)
+        self.back_to_table_btn = ttk.Button(self.log_frame, text="返回", command=lambda: self.switch_tab(1))
+        self.back_to_table_btn.grid(row=1, column=0, pady=5)
 
     def preview_test_cases(self):
         if not self.verify_input():
             return
-
         try:
             manager = TestCaseManager(xmind_file=self.xmind_path.get(), output_dir="")
             manager.load_xmind()
             manager.parse_test_cases()
             self.test_cases = manager.test_cases
-
-            self.root.geometry("1500x1000")
             self.show_preview_table()
-            self.generate_excel_btn.grid()  # 显示生成Excel按钮
-            self.upload_btn.grid()  # 显示一键上传按钮
-            self.log_frame.grid()  # 显示日志区域
-
         except Exception as e:
             logging.error(e)
             Messagebox.show_error("错误", f"预览失败: {e}\n")
 
     def show_preview_table(self):
-        self.table_frame.grid()  # 显示表格区域
-        if self.table_frame:
-            self.table_frame.destroy()
-        self.create_table()
-
         additional_data = {
             "影响版本": self.effect_version_widget.get(),
             "功能场景": f"{self.scenario_main_widget.get()}-{self.scenario_sub_widget.get()}" if self.scenario_sub_widget.get() else self.scenario_main_widget.get(),
@@ -168,11 +158,27 @@ class XMindConvertionApp:
         df.loc[df["用例名称（主题）"].isnull(), additional_data.keys()] = None
 
         self.table = Table(self.table_frame, dataframe=df, editable=True, width=1000, height=500)
+        self.table.grid(row=0, column=0, pady=5, sticky="nsew")
         self.table.show()
+        self.notebook.tab(1, state="normal")
+        self.switch_tab(1)
+
+    def generate_excel(self):
+        try:
+            df = self.table.model.df
+            file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+            if not file_path:
+                return
+
+            df.to_excel(file_path, index=False)
+            self.update_status("生成EXCEL成功")
+        except Exception as e:
+            self.update_status("生成EXCEL失败")
 
     def upload_to_jira(self):
         result = Messagebox.yesno("确定要上传用例到 JIRA 吗？")
         if result == '确认':
+            self.switch_tab(2)  # 切换到日志 Tab
             df = self.table.model.df
             self.update_status("开始上传用例到 JIRA...")
             result = self.jira_helper.upload_test_cases(df, self.update_status)
@@ -187,6 +193,18 @@ class XMindConvertionApp:
         self.log_text.config(state="disabled")
         self.log_text.see(ttk.END)
         self.log_text.update_idletasks()
+
+    def switch_tab(self, index):
+        """受控切换 Notebook Tabs"""
+        self.notebook.select(index)
+        if index == 0:
+            self.notebook.tab(1, state="disabled")
+            self.notebook.tab(2, state="disabled")
+        elif index == 1:
+            self.notebook.tab(1, state="normal")
+            self.notebook.tab(2, state="disabled")
+        elif index == 2:
+            self.notebook.tab(2, state="normal")
 
     def parse_field_data(self, field_data):
         self.scenario = field_data["功能场景"]
@@ -221,15 +239,3 @@ class XMindConvertionApp:
                 Messagebox.show_error(f"请确保{field_name}已填写！\n")
                 return False
         return True
-
-    def generate_excel(self):
-        try:
-            df = self.table.model.df
-            file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
-            if not file_path:
-                return
-
-            df.to_excel(file_path, index=False)
-            self.update_status("生成EXCEL成功")
-        except Exception as e:
-            self.update_status("生成EXCEL失败")
