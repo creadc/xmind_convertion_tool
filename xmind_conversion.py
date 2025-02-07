@@ -9,7 +9,6 @@ import warnings
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-
 class XMindConvertionApp:
     def __init__(self, root, jira_helper, field_data):
         self.root = root
@@ -44,7 +43,11 @@ class XMindConvertionApp:
         """创建 UI 界面"""
         # 创建 Notebook
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.notebook.grid(row=0, column=0, sticky="nsew")
+
+        # 配置行列权重
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
 
         # 创建 Tabs
         self.config_frame = ttk.Frame(self.notebook)
@@ -61,7 +64,7 @@ class XMindConvertionApp:
         # 表格区域
         self.init_table_frame()
 
-        # 日志 Tab
+        # 日志区域
         self.init_log_frame()
 
     def init_config_frame(self):
@@ -112,21 +115,19 @@ class XMindConvertionApp:
         ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=8, column=0, columnspan=2, pady=5)
 
     def init_table_frame(self):
-        self.back_to_config_btn = ttk.Button(self.table_frame, text="返回", command=lambda: self.switch_tab(0))
-        self.back_to_config_btn.grid(row=1, column=0, pady=5)
+        self.table_container = ttk.Frame(self.table_frame)
+        self.table_container.grid(row=0, column=0, columnspan=3, sticky="nsew")
         self.generate_excel_btn = ttk.Button(self.table_frame, text="生成Excel", command=self.generate_excel)
-        self.generate_excel_btn.grid(row=1, column=1, pady=5)
+        self.generate_excel_btn.grid(row=1, column=0, pady=5)
         self.upload_btn = ttk.Button(self.table_frame, text="一键上传", command=self.upload_to_jira)
-        self.upload_btn.grid(row=1, column=2, pady=5)
+        self.upload_btn.grid(row=1, column=1, pady=5)
 
     def init_log_frame(self):
         self.log_text = ttk.Text(self.log_frame, height=10, width=70)
         self.log_text.grid(row=0, column=0, sticky="nsew")
-        self.log_scrollbar = ttk.Scrollbar(self.log_frame, orient=ttk.VERTICAL, command=self.log_text.yview)
+        self.log_scrollbar = ttk.Scrollbar(self.log_frame, orient="vertical", command=self.log_text.yview)
         self.log_scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_text.config(yscrollcommand=self.log_scrollbar.set)
-        self.back_to_table_btn = ttk.Button(self.log_frame, text="返回", command=lambda: self.switch_tab(1))
-        self.back_to_table_btn.grid(row=1, column=0, pady=5)
 
     def preview_test_cases(self):
         if not self.verify_input():
@@ -142,6 +143,9 @@ class XMindConvertionApp:
             Messagebox.show_error("错误", f"预览失败: {e}\n")
 
     def show_preview_table(self):
+        for widget in self.table_container.winfo_children():
+            widget.destroy()
+
         additional_data = {
             "影响版本": self.effect_version_widget.get(),
             "功能场景": f"{self.scenario_main_widget.get()}-{self.scenario_sub_widget.get()}" if self.scenario_sub_widget.get() else self.scenario_main_widget.get(),
@@ -150,17 +154,15 @@ class XMindConvertionApp:
             "用例类型": self.case_type_widget.get(),
             "标签": self.tags_widget.get(),
         }
-
         df = pd.DataFrame(self.test_cases, columns=["用例名称（主题）", "测试步骤", "预期结果", "测试数据"])
         for key, value in additional_data.items():
             df[key] = value
-
         df.loc[df["用例名称（主题）"].isnull(), additional_data.keys()] = None
 
-        self.table = Table(self.table_frame, dataframe=df, editable=True, width=1000, height=500)
+        self.table = Table(self.table_container, dataframe=df, editable=True, width=1000, height=500)
         self.table.grid(row=0, column=0, pady=5, sticky="nsew")
         self.table.show()
-        self.notebook.tab(1, state="normal")
+        self.table.setRowHeight(40)
         self.switch_tab(1)
 
     def generate_excel(self):
@@ -169,17 +171,18 @@ class XMindConvertionApp:
             file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
             if not file_path:
                 return
-
             df.to_excel(file_path, index=False)
-            self.update_status("生成EXCEL成功")
+            Messagebox.show_info("生成EXCEL成功！")
         except Exception as e:
-            self.update_status("生成EXCEL失败")
+            logging.error(e)
+            Messagebox.show_error(f"生成EXCEL失败！{e}")
 
     def upload_to_jira(self):
-        result = Messagebox.yesno("确定要上传用例到 JIRA 吗？")
-        if result == '确认':
-            self.switch_tab(2)  # 切换到日志 Tab
+        if Messagebox.yesno("确定要上传用例到 JIRA 吗？") == '确认':
+            self.switch_tab(2)
             df = self.table.model.df
+            if self.log_text.get("1.0", ttk.END).strip():
+                self.update_status("\n")
             self.update_status("开始上传用例到 JIRA...")
             result = self.jira_helper.upload_test_cases(df, self.update_status)
             if result:
@@ -196,15 +199,8 @@ class XMindConvertionApp:
 
     def switch_tab(self, index):
         """受控切换 Notebook Tabs"""
+        self.notebook.tab(index, state="normal")
         self.notebook.select(index)
-        if index == 0:
-            self.notebook.tab(1, state="disabled")
-            self.notebook.tab(2, state="disabled")
-        elif index == 1:
-            self.notebook.tab(1, state="normal")
-            self.notebook.tab(2, state="disabled")
-        elif index == 2:
-            self.notebook.tab(2, state="normal")
 
     def parse_field_data(self, field_data):
         self.scenario = field_data["功能场景"]
@@ -219,8 +215,6 @@ class XMindConvertionApp:
         file_path = filedialog.askopenfilename(filetypes=[("XMind Files", "*.xmind")])
         if file_path:
             self.xmind_path.set(file_path)
-            self.xmind_path_widget.delete(0, ttk.END)
-            self.xmind_path_widget.insert(0, file_path)
 
     def update_scenarios(self, event):
         """更新子功能场景"""

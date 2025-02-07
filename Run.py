@@ -1,3 +1,5 @@
+from tkinter.font import Font
+
 import ttkbootstrap as ttk
 from ttkbootstrap.dialogs import Messagebox
 from configparser import ConfigParser
@@ -30,8 +32,7 @@ class JiraLoginApp:
 
     def init_style(self):
         self.style = ttk.Style()
-        self.style.configure('TLabel', font=(common_font, common_font_size))  # 设置Label的字体
-        self.style.configure('TEntry', font=(common_font, common_font_size))  # 设置Entry的字体
+        root.option_add("*Font", (common_font, common_font_size))              # 全局设置字体
         self.style.configure('TButton', font=(common_font, common_font_size))  # 设置Button的字体
 
     def create_login_widgets(self):
@@ -112,7 +113,7 @@ class JiraLoginApp:
             self.destroy_popup(popup)
             if not self.field_data:
                 # 获取 JIRA 字段信息失败
-                Messagebox.show_error("获取 JIRA 字段信息失败\n")
+                Messagebox.show_error("获取 JIRA 字段信息失败！\n")
         except Exception as e:
             self.destroy_popup(popup)
             Messagebox.show_error("错误", f"获取jira字段信息异常：{e}\n")
