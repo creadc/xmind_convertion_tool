@@ -55,6 +55,13 @@ class JiraLoginApp:
 
         root.place_window_center()
 
+        # 如果用户名和密码存在，直接登录
+        a = self.jira_username_var.get()
+        if self.jira_username_var.get() != "" and self.jira_password_var.get() != "":
+            self.login(self.jira_username_var.get(), self.jira_password_var.get())
+        else:
+            self.fail_times += 1
+
     def handle_login_button(self):
         """处理登录按钮点击事件"""
         username = self.jira_username_var.get()
@@ -124,7 +131,7 @@ class JiraLoginApp:
         screen_height = self.root.winfo_screenheight()
 
         # 直接使用设置的窗口大小
-        window_width = 1500
+        window_width = 2000
         window_height = 1000
 
         # 计算居中位置

@@ -1,4 +1,3 @@
-import logging
 import pandas as pd
 from Common import *
 from tkinter import filedialog
@@ -42,7 +41,7 @@ class XMindConvertionApp:
     def create_widgets(self):
         """创建 UI 界面"""
         # 创建 Notebook
-        self.notebook = ttk.Notebook(self.root, style="Custom.TNotebook")
+        self.notebook = ttk.Notebook(self.root)
         self.notebook.grid(row=0, column=0, sticky="nsew")
 
         # 配置行列权重
@@ -54,8 +53,6 @@ class XMindConvertionApp:
         self.log_frame = ttk.Frame(self.notebook)
 
         self.notebook.add(self.config_frame, text="配置")
-        self.notebook.add(self.table_frame, text="表格", state="disabled")
-        self.notebook.add(self.log_frame, text="日志", state="disabled")
 
         # 配置区域
         self.init_config_frame()
@@ -72,7 +69,7 @@ class XMindConvertionApp:
 
         ttk.Label(self.config_container, text="xmind文件位置").grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.xmind_path = ttk.StringVar()
-        self.xmind_path_widget = ttk.Entry(self.config_container, textvariable=self.xmind_path, width=50)
+        self.xmind_path_widget = ttk.Entry(self.config_container, textvariable=self.xmind_path, width=57)
         self.xmind_path_widget.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
         ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4,
                                                                                                     padx=5, pady=5,
@@ -172,7 +169,9 @@ class XMindConvertionApp:
         self.table.grid(row=0, column=0, sticky="nsew")
         self.table.show()
         self.table.setRowHeight(40)
-        self.switch_tab(1)
+
+        self.notebook.add(self.table_frame, text="表格")
+        self.notebook.select(1)
 
     def generate_excel(self):
         try:
@@ -188,7 +187,9 @@ class XMindConvertionApp:
 
     def upload_to_jira(self):
         if show_messagebox(self.root, "yesno", "确定要上传用例到 JIRA 吗？") == '确认':
-            self.switch_tab(2)
+            self.notebook.add(self.log_frame, text="日志")
+            self.notebook.select(2)
+
             df = self.table.model.df
             if self.log_text.get("1.0", ttk.END).strip():
                 self.update_status("\n")
@@ -237,8 +238,3 @@ class XMindConvertionApp:
                 show_messagebox(self.root, "error", f"请确保{field_name}已填写！")
                 return False
         return True
-
-    def switch_tab(self, index):
-        """受控切换 Notebook Tabs"""
-        self.notebook.tab(index, state="normal")
-        self.notebook.select(index)

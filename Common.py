@@ -13,9 +13,11 @@ def init_style(root):
     root.option_add("*Font", (common_font, common_font_size))  # 全局设置字体
     style.configure('TButton', font=(common_font, common_font_size))  # 设置Button的字体
 
-    style.configure("Custom.TNotebook", tabmargins=[2, 5, 2, 0])  # 调整整体样式
-    style.configure("Custom.TNotebook.Tab", font=("Arial", 12), padding=[10, 5])  # 调整标签样式
-    style.map("Custom.TNotebook.Tab", background=[("selected", "blue"), ("!selected", "white")])
+    # 设置 Notebook 整体背景色
+    style.configure("TNotebook", background="white", borderwidth=0)
+    style.configure("TNotebook.Tab", font=(common_font, 15), background="white")
+    style.map("TNotebook.Tab", background=[("selected", "#4582EC")], foreground=[("selected", "white")])
+
 
 def init_grid(frame, row, col):
     """初始化布局"""
