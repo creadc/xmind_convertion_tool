@@ -5,7 +5,9 @@ from ttkbootstrap.dialogs import Messagebox
 
 theme = 'litera'  # 主题
 common_font = 'Consolas'  # 通用字体
-common_font_size = 12  # 通用字体大小
+small_font_size = 9     # 小号字体
+common_font_size = 12   # 通用字体
+big_font_size = 15      # 大号字体
 
 
 def init_style(root):
@@ -15,7 +17,7 @@ def init_style(root):
 
     # 设置 Notebook 整体背景色
     style.configure("TNotebook", background="white", borderwidth=0)
-    style.configure("TNotebook.Tab", font=(common_font, 15), background="white")
+    style.configure("TNotebook.Tab", font=(common_font, big_font_size), background="white")
     style.map("TNotebook.Tab", background=[("selected", "#4582EC")], foreground=[("selected", "white")])
 
 
@@ -25,6 +27,19 @@ def init_grid(frame, row, col):
         frame.grid_rowconfigure(i, weight=1)
     for i in range(col):
         frame.grid_columnconfigure(i, weight=1)
+
+
+def clean_widget(root):
+    """清除组件"""
+    for widget in root.winfo_children():
+        widget.destroy()
+
+
+def clean_grid(root):
+    for i in range(root.grid_size()[1]):
+        root.grid_rowconfigure(i, weight=0)
+    for j in range(root.grid_size()[0]):
+        root.grid_columnconfigure(j, weight=0)
 
 
 def create_popup(text):

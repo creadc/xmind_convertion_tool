@@ -31,7 +31,7 @@ class JiraLoginApp:
         init_grid(self.root, 2, 1)
 
         # 提示文字
-        ttk.Label(self.root, text="使用jira用户名密码登录", font=('Consolas', 9), foreground='grey', anchor='center').grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        ttk.Label(self.root, text="使用jira用户名密码登录", font=('Consolas', small_font_size), foreground='grey', anchor='center').grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
         # 登录主界面
         self.login_frame = ttk.Frame(self.root)
@@ -56,7 +56,6 @@ class JiraLoginApp:
         root.place_window_center()
 
         # 如果用户名和密码存在，直接登录
-        a = self.jira_username_var.get()
         if self.jira_username_var.get() != "" and self.jira_password_var.get() != "":
             self.login(self.jira_username_var.get(), self.jira_password_var.get())
         else:
@@ -114,8 +113,9 @@ class JiraLoginApp:
     def open_main_app(self):
         """加载主界面"""
         # 清空根窗口中的所有部件
-        for widget in self.root.winfo_children():
-            widget.destroy()
+        clean_widget(self.root)
+        # 清除布局
+        clean_grid(self.root)
 
         # 修改窗口标题和尺寸
         self.root.title("xmind转换工具")
@@ -131,8 +131,8 @@ class JiraLoginApp:
         screen_height = self.root.winfo_screenheight()
 
         # 直接使用设置的窗口大小
-        window_width = 2000
-        window_height = 1000
+        window_width = 1600
+        window_height = 900
 
         # 计算居中位置
         x = (screen_width - window_width) // 2

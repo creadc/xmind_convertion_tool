@@ -2,7 +2,7 @@ import pandas as pd
 from Common import *
 from tkinter import filedialog
 from xmind_analyze import TestCaseManager
-from pandastable import Table
+from pandastable import Table, util
 import warnings
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -71,9 +71,7 @@ class XMindConvertionApp:
         self.xmind_path = ttk.StringVar()
         self.xmind_path_widget = ttk.Entry(self.config_container, textvariable=self.xmind_path, width=57)
         self.xmind_path_widget.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
-        ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4,
-                                                                                                    padx=5, pady=5,
-                                                                                                    sticky="w")
+        ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="功能场景").grid(row=1, column=0, padx=5, pady=5, sticky="e")
         self.scenario_main_widget = ttk.Combobox(self.config_container, values=self.scenario_main, state="readonly")
@@ -107,19 +105,20 @@ class XMindConvertionApp:
         self.link_type_widget.set("关联的任务")
         self.link_type_widget.grid(row=6, column=1, padx=5, pady=5, sticky="w")
         self.link_issue_widget = ttk.Entry(self.config_container, width=20)
-        self.link_issue_widget.grid(row=6, column=2, padx=5, pady=5, sticky="w")
+        self.link_issue_widget.grid(row=6, column=2, padx=0, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="标签").grid(row=7, column=0, padx=5, pady=5, sticky="e")
         self.tags_widget = ttk.Entry(self.config_container)
         self.tags_widget.grid(row=7, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=1, column=0, pady=5)
+        ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=1, column=0, pady=30)
 
         init_grid(self.config_container, 8, 5)
-        init_grid(self.config_frame, 2, 1)
+        init_grid(self.config_frame, 1, 1)
+        self.config_frame.grid_rowconfigure(1, weight=2)
 
     def init_table_frame(self):
-        init_grid(self.table_frame, 2, 2)
+        init_grid(self.table_frame, 1, 2)
         self.table_container = ttk.Frame(self.table_frame)
         self.table_container.grid(row=0, column=0, columnspan=3, sticky="nsew")
         self.generate_excel_btn = ttk.Button(self.table_frame, text="生成Excel", command=self.generate_excel)
@@ -149,8 +148,7 @@ class XMindConvertionApp:
             show_messagebox(self.root, "error", f"预览失败: {e}")
 
     def show_preview_table(self):
-        for widget in self.table_container.winfo_children():
-            widget.destroy()
+        clean_widget(self.table_container)
 
         additional_data = {
             "影响版本": self.effect_version_widget.get(),
@@ -165,13 +163,16 @@ class XMindConvertionApp:
             df[key] = value
         df.loc[df["用例名称（主题）"].isnull(), additional_data.keys()] = None
 
-        self.table = Table(self.table_container, dataframe=df, editable=True)
+        self.table = Table(self.table_container, dataframe=df, editable=True, maxcellwidth=1500)
+        # 显示表格
         self.table.grid(row=0, column=0, sticky="nsew")
         self.table.show()
-        self.table.setRowHeight(40)
 
         self.notebook.add(self.table_frame, text="表格")
         self.notebook.select(1)
+        # 设置表格样式
+        self.table.setRowHeight(40)
+        self.table.autoResizeColumns()
 
     def generate_excel(self):
         try:
@@ -238,3 +239,59 @@ class XMindConvertionApp:
                 show_messagebox(self.root, "error", f"请确保{field_name}已填写！")
                 return False
         return True
+
+    # 自定义实现的动态调整table列宽度，有点问题，不用了
+    # def customAdjustColumnWidths(self):
+    #     # 先测量所有列的原始宽度
+    #     num_cols = self.table.model.getColumnCount()
+    #     original_widths = []
+    #     for col in range(num_cols):
+    #         colname = self.table.model.getColumnName(col)
+    #         # 测量列头宽度
+    #         header_width, _ = util.getTextLength(colname, self.table.maxcellwidth, font=self.table.thefont)
+    #         # 测量数据中最长条目的宽度（这里生成一个模拟文本）
+    #         l = self.table.model.getlongestEntry(col)
+    #         sample_text = "X" * (l + 1)
+    #         data_width, _ = util.getTextLength(sample_text, self.table.maxcellwidth, font=self.table.thefont)
+    #         # 取两者中的较大值
+    #         original_widths.append(max(header_width, data_width))
+    #
+    #     # 根据容器当前宽度计算 cap（a 值）
+    #     container_width = self.config_container.winfo_width() or self.table.width
+    #     cap = self.compute_cap(original_widths, container_width)
+    #
+    #     # 对每一列，最终宽度 = min(原始宽度, cap)
+    #     for col in range(num_cols):
+    #         colname = self.table.model.getColumnName(col)
+    #         self.table.columnwidths[colname] = min(original_widths[col], cap)
+    #
+    #     # 重新计算总宽度和 scrollregion，避免右侧额外空白
+    #     self.tablewidth = sum(self.table.columnwidths.values())
+    #     self.table.configure(scrollregion=(0, 0, self.tablewidth, self.table.rowheight * self.table.model.getRowCount()))
+    #     self.table.redraw()
+    #
+    # def compute_cap(self, widths, container_width):
+    #     """
+    #     根据每列原始宽度和容器总宽度，计算出一个上限（cap）值，使得
+    #     对每一列采用 min(原始宽度, cap) 后，总宽度恰好等于容器宽度。
+    #
+    #     算法思路：
+    #       1. 将所有原始宽度按从小到大排序。
+    #       2. 依次累计较小的宽度，并计算剩余宽度平均分配到剩下的列上的候选值 candidate。
+    #       3. 当遇到某个列宽大于 candidate 时，就认为 candidate 为 cap。
+    #       4. 如果所有列宽都小于候选值，则 cap 取所有列宽中的最大值。
+    #     """
+    #     sorted_widths = sorted(widths)
+    #     total = 0
+    #     n = len(sorted_widths)
+    #     cap = None
+    #     for i, w in enumerate(sorted_widths):
+    #         candidate = (container_width - total) / (n - i)
+    #         if w <= candidate:
+    #             total += w
+    #         else:
+    #             cap = candidate
+    #             break
+    #     if cap is None:
+    #         cap = max(widths)
+    #     return cap
