@@ -31,7 +31,7 @@ class JiraLoginApp:
         init_grid(self.root, 2, 1)
 
         # 提示文字
-        ttk.Label(self.root, text="使用jira用户名密码登录", font=('Consolas', small_font_size), foreground='grey', anchor='center').grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        ttk.Label(self.root, text="使用jira用户名密码登录", style="Tip.TLabel", anchor='center').grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
         # 登录主界面
         self.login_frame = ttk.Frame(self.root)

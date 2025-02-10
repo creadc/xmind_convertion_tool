@@ -132,10 +132,11 @@ class JiraHelper:
             }
         }
         if row['用例类型'] and row['用例类型'] != '无':
-            data["customfield_10546"] = {"value": row['用例类型']}
+            data["fields"]["customfield_10546"] = {"value": row['用例类型']}
         if row['标签']:
-            data["labels"] = {"value": row['标签']}
-        print(data)
+            labels = row['标签'].split(",")
+            data["fields"]["labels"] = labels
+        print(f"创建用例请求：{data}")
         try:
             response = requests.post(
                 f"{self.base_url}/rest/api/2/issue",
@@ -166,6 +167,25 @@ class JiraHelper:
             logging.error(f"添加测试结果异常：{e}")
             raise e
 
+    def add_link_issue(self, issue_id, link_id, link_type):
+        json = {
+            "type": {
+                "id": str(link_type)
+            },
+            "inwardIssue": {
+                "key": str(issue_id)
+            },
+            "outwardIssue": {
+                "key": str(link_id)
+            }
+        }
+        print(f"添加关联任务：{json}")
+        try:
+            self.jira.create_issue_link(json)
+        except Exception as e:
+            logging.error(f"添加关联任务失败：{e}")
+            raise e
+
     def collect_issue_info(self, issue_key):
         """获取用例的信息"""
         info = IssueInfo()
@@ -190,7 +210,7 @@ class JiraHelper:
             logging.error(f"获取用例信息异常：{e}")
             raise e
 
-    def upload_test_cases(self, df, status_callback=None):
+    def upload_test_cases(self, df, conf, status_callback=None):
         issue_count = 0  # 已创建用例数目
         step_count = 0  # 添加用例的步骤
         issue_id = ''
@@ -201,30 +221,41 @@ class JiraHelper:
             case_name = row['用例名称（主题）']
             if case_name:  # 如果用例名称不为空，创建新用例
                 try:
-                    # 新建用例
-                    # res = self.create_case(row)
-                    res = {'id': '1339911', 'key': 'ET-3490'}
+                    res = self.create_case(row)
+                    # res = {'id': '1339911', 'key': 'ET-3490'}
                     if res:
                         issue_id = res['id']
                         issue_key = res['key']
                         issue_count += 1
                         step_count = 0
-                        status_callback(f"创建用例 {issue_key} 成功")
+                        status_callback(f"\n创建用例 {issue_key} 成功")
                     else:
-                        status_callback(f"创建第{issue_count + 1}个用例失败，用例名称为'{case_name}'")
+                        status_callback(f"创建第{issue_count + 1}个用例失败，用例名称为'{case_name}'!!!")
                         return False
                 except Exception as e:
                     logging.error(f"创建第{issue_count + 1}个用例异常，用例名称为'{case_name}',错误信息：{e}")
-                    status_callback(f"创建第{issue_count + 1}个用例异常，用例名称为'{case_name}'")
+                    status_callback(f"创建第{issue_count + 1}个用例异常，用例名称为'{case_name}'!!!")
                     return False
 
+                # 收集用例信息
                 try:
                     info = self.collect_issue_info(issue_key)
                     if info.issue_id != "":
                         headers[info.zEncKeyFld] = info.zEncKeyVal
                 except Exception as e:
                     logging.info(f"获取用例【{issue_key}】信息异常，错误信息：{e}")
-                    status_callback(f"获取用例【{issue_key}】信息异常")
+                    status_callback(f"获取用例【{issue_key}】信息异常!!!")
+
+                # 关联任务（若有）
+                if conf["link_issue"]:
+                    link_issue = conf["link_issue"]
+                    try:
+                        self.add_link_issue(issue_key, link_issue, "11600")
+                        status_callback(f"关联 {link_issue} 与 {issue_key} 成功")
+                    except Exception as e:
+                        logging.error(f"关联 {link_issue} 与 {issue_key} 异常：{e}")
+                        status_callback(f"关联 {link_issue} 与 {issue_key} 异常!!!")
+                        return False
 
             # 添加步骤
             try:
@@ -233,13 +264,12 @@ class JiraHelper:
                     step_count += 1
                     status_callback(f"{issue_key} 添加第 {step_count} 个步骤成功")
                 else:
-                    status_callback(f"{issue_key} 添加第 {step_count} 个步骤时失败")
+                    status_callback(f"{issue_key} 添加第 {step_count} 个步骤时失败!!!")
                     return False
             except Exception as e:
                 logging.error(f"{issue_key} 添加第 {step_count} 个步骤时异常：{e}")
-                status_callback(f"{issue_key} 添加第 {step_count} 个步骤时异常")
+                status_callback(f"{issue_key} 添加第 {step_count} 个步骤时异常!!!")
                 return False
-
         return True
 
     @staticmethod

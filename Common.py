@@ -14,6 +14,8 @@ def init_style(root):
     style = ttk.Style()
     root.option_add("*Font", (common_font, common_font_size))  # 全局设置字体
     style.configure('TButton', font=(common_font, common_font_size))  # 设置Button的字体
+    style.configure("Red.TLabel", font=(common_font, common_font_size), foreground="red")
+    style.configure("Tip.TLabel", font=(common_font, common_font_size), foreground="grey")
 
     # 设置 Notebook 整体背景色
     style.configure("TNotebook", background="white", borderwidth=0)
