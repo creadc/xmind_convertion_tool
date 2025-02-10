@@ -67,20 +67,20 @@ class XMindConvertionApp:
         self.config_container = ttk.Frame(self.config_frame)
         self.config_container.grid(row=0, column=0, sticky="nsew")
 
-        ttk.Label(self.config_container, text="xmind文件位置", style="Red.TLabel").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="xmind文件位置*").grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.xmind_path = ttk.StringVar()
-        self.xmind_path_widget = ttk.Entry(self.config_container, textvariable=self.xmind_path, width=50)
+        self.xmind_path_widget = ttk.Entry(self.config_container, textvariable=self.xmind_path, width=45)
         self.xmind_path_widget.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky="w")
         ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=3, pady=5, sticky="w")
 
-        ttk.Label(self.config_container, text="功能场景", style="Red.TLabel").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="功能场景*").grid(row=1, column=0, padx=5, pady=5, sticky="e")
         self.scenario_main_widget = ttk.Combobox(self.config_container, values=self.scenario_main, state="readonly")
         self.scenario_main_widget.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         self.scenario_main_widget.bind("<<ComboboxSelected>>", self.update_scenarios)
         self.scenario_sub_widget = ttk.Combobox(self.config_container, state="readonly")
         self.scenario_sub_widget.grid(row=1, column=2, columnspan=2, padx=0, pady=5, sticky="w")
 
-        ttk.Label(self.config_container, text="影响版本", style="Red.TLabel").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="影响版本*").grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.effect_version_widget = ttk.Combobox(self.config_container, values=self.effect_version, state="readonly")
         self.effect_version_widget.set(self.effect_version[-1])
         self.effect_version_widget.grid(row=2, column=1, padx=5, pady=5, sticky="w")
@@ -90,7 +90,7 @@ class XMindConvertionApp:
         self.case_source_widget.set(self.case_source[1])
         self.case_source_widget.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(self.config_container, text="用例级别", style="Red.TLabel").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="用例级别*").grid(row=4, column=0, padx=5, pady=5, sticky="e")
         self.case_level_widget = ttk.Combobox(self.config_container, values=self.case_level, state="readonly")
         self.case_level_widget.set(self.case_level[1])
         self.case_level_widget.grid(row=4, column=1, padx=5, pady=5, sticky="w")
@@ -109,13 +109,16 @@ class XMindConvertionApp:
         ttk.Label(self.config_container, text="任务链接形如FDL-xxxx", style="Tip.TLabel").grid(row=6, column=3, padx=5, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="标签").grid(row=7, column=0, padx=5, pady=5, sticky="e")
-        self.tags_widget = ttk.Entry(self.config_container)
+        self.tags_widget = ttk.Entry(self.config_container, width=21)
         self.tags_widget.grid(row=7, column=1, padx=5, pady=5, sticky="w")
         ttk.Label(self.config_container, text="多个标签用英文逗号隔开", style="Tip.TLabel").grid(row=7, column=2, padx=5, pady=5, sticky="w")
 
         ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=1, column=0, pady=30)
 
-        init_grid(self.config_container, 8, 5)
+        init_grid(self.config_container, 8, 0)
+        self.config_container.grid_columnconfigure(0, weight=1)
+        self.config_container.grid_columnconfigure(4, weight=1)
+
         init_grid(self.config_frame, 1, 1)
         self.config_frame.grid_rowconfigure(1, weight=2)
 
@@ -202,16 +205,25 @@ class XMindConvertionApp:
             self.update_status("开始上传用例到 JIRA...")
             result = self.jira_helper.upload_test_cases(df, conf, self.update_status)
             if result:
-                self.update_status("所有用例已成功上传到 JIRA！")
+                self.update_status("\n所有用例已成功上传到 JIRA！")
             else:
-                self.update_status("部分用例上传到 JIRA 失败，请查看日志！")
+                self.update_status("\n部分用例上传到 JIRA 失败，请查看日志!!!", "error")
 
-    def update_status(self, message):
+    def update_status(self, message, level="normal"):
         self.log_text.config(state="normal")
-        self.log_text.insert(ttk.END, message + "\n")
+        self.insert_text(message + "\n", level)
         self.log_text.config(state="disabled")
         self.log_text.see(ttk.END)
         self.log_text.update_idletasks()
+
+    def insert_text(self, message, level):
+        color = "black"
+        if level == "error":
+            color = "red"
+        # 配置标签的字体颜色
+        self.log_text.tag_configure(level, foreground=color)
+        # 插入文本并应用标签
+        self.log_text.insert(ttk.END, message, level)
 
     def parse_field_data(self, field_data):
         self.scenario = field_data["功能场景"]

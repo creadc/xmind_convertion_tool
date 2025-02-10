@@ -230,11 +230,11 @@ class JiraHelper:
                         step_count = 0
                         status_callback(f"\n创建用例 {issue_key} 成功")
                     else:
-                        status_callback(f"创建第{issue_count + 1}个用例失败，用例名称为'{case_name}'!!!")
+                        status_callback(f"创建第{issue_count + 1}个用例失败，用例名称为'{case_name}'!!!", "error")
                         return False
                 except Exception as e:
                     logging.error(f"创建第{issue_count + 1}个用例异常，用例名称为'{case_name}',错误信息：{e}")
-                    status_callback(f"创建第{issue_count + 1}个用例异常，用例名称为'{case_name}'!!!")
+                    status_callback(f"创建第{issue_count + 1}个用例异常，用例名称为'{case_name}'!!!", "error")
                     return False
 
                 # 收集用例信息
@@ -244,7 +244,7 @@ class JiraHelper:
                         headers[info.zEncKeyFld] = info.zEncKeyVal
                 except Exception as e:
                     logging.info(f"获取用例【{issue_key}】信息异常，错误信息：{e}")
-                    status_callback(f"获取用例【{issue_key}】信息异常!!!")
+                    status_callback(f"获取用例【{issue_key}】信息异常!!!", "error")
 
                 # 关联任务（若有）
                 if conf["link_issue"]:
@@ -254,7 +254,7 @@ class JiraHelper:
                         status_callback(f"关联 {link_issue} 与 {issue_key} 成功")
                     except Exception as e:
                         logging.error(f"关联 {link_issue} 与 {issue_key} 异常：{e}")
-                        status_callback(f"关联 {link_issue} 与 {issue_key} 异常!!!")
+                        status_callback(f"关联 {link_issue} 与 {issue_key} 异常!!!", "error")
                         return False
 
             # 添加步骤
@@ -264,11 +264,11 @@ class JiraHelper:
                     step_count += 1
                     status_callback(f"{issue_key} 添加第 {step_count} 个步骤成功")
                 else:
-                    status_callback(f"{issue_key} 添加第 {step_count} 个步骤时失败!!!")
+                    status_callback(f"{issue_key} 添加第 {step_count} 个步骤时失败!!!", "error")
                     return False
             except Exception as e:
                 logging.error(f"{issue_key} 添加第 {step_count} 个步骤时异常：{e}")
-                status_callback(f"{issue_key} 添加第 {step_count} 个步骤时异常!!!")
+                status_callback(f"{issue_key} 添加第 {step_count} 个步骤时异常!!!", "error")
                 return False
         return True
 
