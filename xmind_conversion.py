@@ -67,20 +67,20 @@ class XMindConvertionApp:
         self.config_container = ttk.Frame(self.config_frame)
         self.config_container.grid(row=0, column=0, sticky="nsew")
 
-        ttk.Label(self.config_container, text="xmind文件位置").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="xmind文件位置", style="Red.TLabel").grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.xmind_path = ttk.StringVar()
-        self.xmind_path_widget = ttk.Entry(self.config_container, textvariable=self.xmind_path, width=57)
-        self.xmind_path_widget.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
-        ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=4, pady=5, sticky="w")
+        self.xmind_path_widget = ttk.Entry(self.config_container, textvariable=self.xmind_path, width=50)
+        self.xmind_path_widget.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky="w")
+        ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=3, pady=5, sticky="w")
 
-        ttk.Label(self.config_container, text="功能场景").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="功能场景", style="Red.TLabel").grid(row=1, column=0, padx=5, pady=5, sticky="e")
         self.scenario_main_widget = ttk.Combobox(self.config_container, values=self.scenario_main, state="readonly")
         self.scenario_main_widget.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         self.scenario_main_widget.bind("<<ComboboxSelected>>", self.update_scenarios)
         self.scenario_sub_widget = ttk.Combobox(self.config_container, state="readonly")
         self.scenario_sub_widget.grid(row=1, column=2, columnspan=2, padx=0, pady=5, sticky="w")
 
-        ttk.Label(self.config_container, text="影响版本").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="影响版本", style="Red.TLabel").grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.effect_version_widget = ttk.Combobox(self.config_container, values=self.effect_version, state="readonly")
         self.effect_version_widget.set(self.effect_version[-1])
         self.effect_version_widget.grid(row=2, column=1, padx=5, pady=5, sticky="w")
@@ -90,9 +90,9 @@ class XMindConvertionApp:
         self.case_source_widget.set(self.case_source[1])
         self.case_source_widget.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(self.config_container, text="用例级别").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="用例级别", style="Red.TLabel").grid(row=4, column=0, padx=5, pady=5, sticky="e")
         self.case_level_widget = ttk.Combobox(self.config_container, values=self.case_level, state="readonly")
-        self.case_level_widget.set(self.case_level[0])
+        self.case_level_widget.set(self.case_level[1])
         self.case_level_widget.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="用例类型").grid(row=5, column=0, padx=5, pady=5, sticky="e")
@@ -106,10 +106,12 @@ class XMindConvertionApp:
         self.link_type_widget.grid(row=6, column=1, padx=5, pady=5, sticky="w")
         self.link_issue_widget = ttk.Entry(self.config_container, width=20)
         self.link_issue_widget.grid(row=6, column=2, padx=0, pady=5, sticky="w")
+        ttk.Label(self.config_container, text="任务链接形如FDL-xxxx", style="Tip.TLabel").grid(row=6, column=3, padx=5, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="标签").grid(row=7, column=0, padx=5, pady=5, sticky="e")
         self.tags_widget = ttk.Entry(self.config_container)
         self.tags_widget.grid(row=7, column=1, padx=5, pady=5, sticky="w")
+        ttk.Label(self.config_container, text="多个标签用英文逗号隔开", style="Tip.TLabel").grid(row=7, column=2, padx=5, pady=5, sticky="w")
 
         ttk.Button(self.config_frame, text="预览", command=self.preview_test_cases).grid(row=1, column=0, pady=30)
 
@@ -191,11 +193,14 @@ class XMindConvertionApp:
             self.notebook.add(self.log_frame, text="日志")
             self.notebook.select(2)
 
-            df = self.table.model.df
+            # 如果之前有日志，加个换行符区分
             if self.log_text.get("1.0", ttk.END).strip():
                 self.update_status("\n")
+
+            df = self.table.model.df
+            conf = {"link_type": self.link_type_widget.get(), "link_issue": self.link_issue_widget.get()}
             self.update_status("开始上传用例到 JIRA...")
-            result = self.jira_helper.upload_test_cases(df, self.update_status)
+            result = self.jira_helper.upload_test_cases(df, conf, self.update_status)
             if result:
                 self.update_status("所有用例已成功上传到 JIRA！")
             else:
