@@ -175,6 +175,9 @@ class XMindConvertionApp:
         self.table.grid(row=0, column=0, sticky="nsew")
         self.table.show()
 
+        # 设置表格样式
+        self.table.set_style()
+
         self.notebook.add(self.table_frame, text="表格")
         self.notebook.select(1)
 
@@ -255,59 +258,3 @@ class XMindConvertionApp:
                 show_messagebox(self.root, "error", f"请确保{field_name}已填写！")
                 return False
         return True
-
-    # 自定义实现的动态调整table列宽度，有点问题，不用了
-    # def customAdjustColumnWidths(self):
-    #     # 先测量所有列的原始宽度
-    #     num_cols = self.table.model.getColumnCount()
-    #     original_widths = []
-    #     for col in range(num_cols):
-    #         colname = self.table.model.getColumnName(col)
-    #         # 测量列头宽度
-    #         header_width, _ = util.getTextLength(colname, self.table.maxcellwidth, font=self.table.thefont)
-    #         # 测量数据中最长条目的宽度（这里生成一个模拟文本）
-    #         l = self.table.model.getlongestEntry(col)
-    #         sample_text = "X" * (l + 1)
-    #         data_width, _ = util.getTextLength(sample_text, self.table.maxcellwidth, font=self.table.thefont)
-    #         # 取两者中的较大值
-    #         original_widths.append(max(header_width, data_width))
-    #
-    #     # 根据容器当前宽度计算 cap（a 值）
-    #     container_width = self.config_container.winfo_width() or self.table.width
-    #     cap = self.compute_cap(original_widths, container_width)
-    #
-    #     # 对每一列，最终宽度 = min(原始宽度, cap)
-    #     for col in range(num_cols):
-    #         colname = self.table.model.getColumnName(col)
-    #         self.table.columnwidths[colname] = min(original_widths[col], cap)
-    #
-    #     # 重新计算总宽度和 scrollregion，避免右侧额外空白
-    #     self.tablewidth = sum(self.table.columnwidths.values())
-    #     self.table.configure(scrollregion=(0, 0, self.tablewidth, self.table.rowheight * self.table.model.getRowCount()))
-    #     self.table.redraw()
-    #
-    # def compute_cap(self, widths, container_width):
-    #     """
-    #     根据每列原始宽度和容器总宽度，计算出一个上限（cap）值，使得
-    #     对每一列采用 min(原始宽度, cap) 后，总宽度恰好等于容器宽度。
-    #
-    #     算法思路：
-    #       1. 将所有原始宽度按从小到大排序。
-    #       2. 依次累计较小的宽度，并计算剩余宽度平均分配到剩下的列上的候选值 candidate。
-    #       3. 当遇到某个列宽大于 candidate 时，就认为 candidate 为 cap。
-    #       4. 如果所有列宽都小于候选值，则 cap 取所有列宽中的最大值。
-    #     """
-    #     sorted_widths = sorted(widths)
-    #     total = 0
-    #     n = len(sorted_widths)
-    #     cap = None
-    #     for i, w in enumerate(sorted_widths):
-    #         candidate = (container_width - total) / (n - i)
-    #         if w <= candidate:
-    #             total += w
-    #         else:
-    #             cap = candidate
-    #             break
-    #     if cap is None:
-    #         cap = max(widths)
-    #     return cap
