@@ -1,4 +1,4 @@
-from Common import *
+from common import *
 from configparser import ConfigParser
 from jira_helper import JiraHelper
 from xmind_conversion import XMindConvertionApp

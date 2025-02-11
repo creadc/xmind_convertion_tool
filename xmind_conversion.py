@@ -1,8 +1,10 @@
 import pandas as pd
-from Common import *
+from common import *
 from tkinter import filedialog
 from xmind_analyze import TestCaseManager
-from pandastable import Table, util
+from custom_pandas_table import CustomPandasTable
+from pandastable import Table
+
 import warnings
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -168,16 +170,13 @@ class XMindConvertionApp:
             df[key] = value
         df.loc[df["用例名称（主题）"].isnull(), additional_data.keys()] = None
 
-        self.table = Table(self.table_container, dataframe=df, editable=True, maxcellwidth=1500)
+        self.table = CustomPandasTable(self.table_container, df)
         # 显示表格
         self.table.grid(row=0, column=0, sticky="nsew")
         self.table.show()
 
         self.notebook.add(self.table_frame, text="表格")
         self.notebook.select(1)
-        # 设置表格样式
-        self.table.setRowHeight(40)
-        self.table.autoResizeColumns()
 
     def generate_excel(self):
         try:
