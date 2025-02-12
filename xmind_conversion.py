@@ -164,7 +164,7 @@ class XMindConvertionApp:
             "用例类型": self.case_type_widget.get(),
             "标签": self.tags_widget.get(),
         }
-        df = pd.DataFrame(self.test_cases, columns=["用例名称（主题）", "测试步骤", "预期结果", "测试数据"])
+        df = pd(self.test_cases, columns=["用例名称（主题）", "测试步骤", "预期结果", "测试数据"])
         for key, value in additional_data.items():
             df[key] = value
         df.loc[df["用例名称（主题）"].isnull(), additional_data.keys()] = None

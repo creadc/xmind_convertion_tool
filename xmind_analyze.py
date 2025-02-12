@@ -5,7 +5,7 @@ from xmindparser import xmind_to_dict
 
 def _is_test_step(title):
     """判断是否为测试步骤"""
-    return len(title) > 2 and title[0].isdigit() and title[1] == '.'
+    return len(title) > 2 and title[0].isdigit() and title[1] == '.' and ("check" in title.lower())
 
 
 class TestCaseManager:
@@ -49,6 +49,7 @@ class TestCaseManager:
             self._parse_scenario(scenario, scenario_name, suffix)
 
     def _parse_scenario(self, node, path, suffix):
+        """拼接功能场景作为用例名"""
         for child in node.get('topics', []):
             title = child['title']
             if _is_test_step(title):
@@ -68,16 +69,20 @@ class TestCaseManager:
             title = child['title']
             if _is_test_step(title):
                 step = title
-                expectation = child['topics'][0]['title'] if child.get('topics') else None
+                expectation = child['topics'][0] if child.get('topics') else None
                 # 预期结果为空时提示一下
-                if expectation is None:
+                if expectation['title'] is None:
                     logging.warning(f"{path}{suffix} - 步骤 '{step}' 缺少预期结果")
+                # 如果标明门槛，在标题行添加【门槛】
+                threshold = expectation['topics'][0] if expectation.get('topics') else None
+                if threshold and threshold['title'] and ("门槛" not in path):
+                    path = f"【{threshold['title']}】{path}"
                 # 只有测试数据更新时带上测试数据
                 if is_new_test_data and test_data is not None:
-                    steps.append((step, expectation, test_data))
+                    steps.append((step, expectation['title'], test_data))
                     is_new_test_data = False
                 else:
-                    steps.append((step, expectation, None))
+                    steps.append((step, expectation['title'], None))
 
             else:
                 test_data = title
