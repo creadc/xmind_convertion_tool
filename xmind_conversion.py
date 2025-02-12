@@ -1,12 +1,11 @@
-import pandas as pd
+#coding=utf-8
+import logging
 from common import *
+from pandas import DataFrame as pd
 from tkinter import filedialog
 from xmind_analyze import TestCaseManager
 from custom_pandas_table import CustomPandasTable
-from pandastable import Table
-
 import warnings
-
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 

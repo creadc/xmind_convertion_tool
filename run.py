@@ -1,3 +1,7 @@
+#coding=utf-8
+import os
+import sys
+
 from common import *
 from configparser import ConfigParser
 from jira_helper import JiraHelper
@@ -15,8 +19,9 @@ class JiraLoginApp:
         self.fail_times = 0
 
         # 从配置文件中获取用户名和密码
+        self.config_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'config.ini')
         self.config = ConfigParser()
-        self.config.read("config.ini")
+        self.config.read(self.config_path)
         self.jira_username_var = ttk.StringVar(value=self.config.get('jira', 'username', fallback=''))
         self.jira_password_var = ttk.StringVar(value=self.config.get('jira', 'password', fallback=''))
 
@@ -82,7 +87,7 @@ class JiraLoginApp:
             if res:
                 if self.fail_times != 0:
                     self.config["jira"] = {"username": username, "password": password}
-                    with open("config.ini", "w") as config_file:
+                    with open(self.config_path, "w") as config_file:
                         self.config.write(config_file)
             else:
                 # 登录失败

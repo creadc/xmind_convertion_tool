@@ -1,8 +1,6 @@
-from tkinter import Entry, StringVar
-
-import pandas as pd
-from pandastable import Table
+#coding=utf-8
 from common import *
+from pandastable import Table
 
 
 class CustomPandasTable(Table):

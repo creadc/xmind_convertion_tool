@@ -1,8 +1,8 @@
+#coding=utf-8
+import logging
 import json
 import re
-
 import requests
-import logging
 from bs4 import BeautifulSoup
 from atlassian import Jira
 

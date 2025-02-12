@@ -1,7 +1,6 @@
+#coding=utf-8
 import logging
 from xmindparser import xmind_to_dict
-import os
-import openpyxl
 
 
 def _is_test_step(title):
