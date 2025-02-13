@@ -86,15 +86,15 @@ class XMindConvertionApp:
         self.effect_version_widget.set(self.effect_version[-1])
         self.effect_version_widget.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(self.config_container, text="用例来源").grid(row=3, column=0, padx=5, pady=5, sticky="e")
-        self.case_source_widget = ttk.Combobox(self.config_container, values=self.case_source, state="readonly")
-        self.case_source_widget.set(self.case_source[1])
-        self.case_source_widget.grid(row=3, column=1, padx=5, pady=5, sticky="w")
-
-        ttk.Label(self.config_container, text="用例级别*").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        ttk.Label(self.config_container, text="用例级别*").grid(row=3, column=0, padx=5, pady=5, sticky="e")
         self.case_level_widget = ttk.Combobox(self.config_container, values=self.case_level, state="readonly")
         self.case_level_widget.set(self.case_level[1])
-        self.case_level_widget.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        self.case_level_widget.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+
+        ttk.Label(self.config_container, text="用例来源").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        self.case_source_widget = ttk.Combobox(self.config_container, values=self.case_source, state="readonly")
+        self.case_source_widget.set(self.case_source[1])
+        self.case_source_widget.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="用例类型").grid(row=5, column=0, padx=5, pady=5, sticky="e")
         self.case_type_widget = ttk.Combobox(self.config_container, values=self.case_type, state="readonly")

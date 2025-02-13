@@ -59,12 +59,17 @@ class JiraLoginApp:
         ttk.Button(self.login_frame, text="登录", command=self.handle_login_button).grid(row=2, column=0, columnspan=2, pady=20)
 
         root.place_window_center()
+        self.root.bind('<Return>', self.handle_login_button_event)
 
         # 如果用户名和密码存在，直接登录
         if self.jira_username_var.get() != "" and self.jira_password_var.get() != "":
             self.login(self.jira_username_var.get(), self.jira_password_var.get())
         else:
             self.fail_times += 1
+
+    def handle_login_button_event(self, event=None):
+        """处理回车键事件"""
+        self.handle_login_button()
 
     def handle_login_button(self):
         """处理登录按钮点击事件"""
@@ -136,8 +141,8 @@ class JiraLoginApp:
         screen_height = self.root.winfo_screenheight()
 
         # 直接使用设置的窗口大小
-        window_width = 1600
-        window_height = 900
+        window_width = int(screen_width * 2/3)
+        window_height = int(screen_height * 2/3)
 
         # 计算居中位置
         x = (screen_width - window_width) // 2
