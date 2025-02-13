@@ -124,6 +124,8 @@ class JiraLoginApp:
         """加载主界面"""
         # 清空根窗口中的所有部件
         clean_widget(self.root)
+        # 清除绑定事件
+        self.root.unbind('<Return>')
         # 清除布局
         clean_grid(self.root)
 

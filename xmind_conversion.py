@@ -173,12 +173,11 @@ class XMindConvertionApp:
         # 显示表格
         self.table.grid(row=0, column=0, sticky="nsew")
         self.table.show()
-
-        # 设置表格样式
-        self.table.set_style()
-
         self.notebook.add(self.table_frame, text="表格")
         self.notebook.select(1)
+        self.table_container.update()
+        # 设置表格样式
+        self.table.set_style()
 
     def generate_excel(self):
         try:
