@@ -111,67 +111,67 @@ class CustomPandasTable(Table):
             self.tooltip.destroy()
         super().destroy()
 
-    def autoResizeColumns(self):
-        """自动调整列宽以适应容器宽度"""
-        self.adjustColumnWidths()
-        self.redraw()
-
-    def adjustColumnWidths(self, limit=None):
-        """根据容器宽度动态调整列宽"""
-        table_width = self.winfo_width()
-        if table_width <= 1:
-            return
-
-        # 计算每列的原始宽度
-        self.columnwidths = {}
-        widths = []
-        cols = self.model.getColumnCount()
-        for col in range(cols):
-            colname = self.model.getColumnName(col)
-            l = self.model.getlongestEntry(col)
-            txt = 'X' * (l + 1)
-            tw, _ = util.getTextLength(txt, self.maxcellwidth, font=self.thefont)
-            tw = max(tw, self.cellwidth)  # 确保不小于最小宽度
-            tw = min(tw, self.maxcellwidth)  # 确保不超过最大限制
-            self.columnwidths[colname] = tw
-            widths.append(tw)
-
-        sum_width = sum(widths)
-        sum_total = table_width
-
-        # 根据总宽度调整策略
-        if sum_width > sum_total:
-            # 计算cap阈值
-            sorted_widths = sorted(widths)
-            n = len(sorted_widths)
-            sum_so_far = 0
-            cap = sum_total  # 初始值
-
-            for k in range(n):
-                remaining = n - k
-                candidate_cap = (sum_total - sum_so_far) / remaining
-                if sorted_widths[k] <= candidate_cap:
-                    sum_so_far += sorted_widths[k]
-                else:
-                    cap = candidate_cap
-                    break
-            else:
-                cap = sorted_widths[-1] if n > 0 else 0
-
-            # 应用阈值调整列宽
-            for col in range(cols):
-                colname = self.model.getColumnName(col)
-                self.columnwidths[colname] = min(widths[col], cap)
-
-        elif sum_width < sum_total:
-            # 扩展列宽以填充剩余空间
-            delta = sum_total - sum_width
-            num_cols = cols
-            avg_inc = delta / num_cols
-
-            for col in range(num_cols):
-                colname = self.model.getColumnName(col)
-                new_width = widths[col] + avg_inc
-                new_width = min(new_width, self.maxcellwidth)
-                new_width = max(new_width, self.cellwidth)
-                self.columnwidths[colname] = new_width
+    # 自定义自动调整列宽方法，但是表现不太好，不用了
+    # def autoResizeColumns(self):
+    #     """自动调整列宽以适应容器宽度"""
+    #     self.adjustColumnWidths()
+    #     self.redraw()
+    #
+    # def adjustColumnWidths(self, limit=None):
+    #     """根据容器宽度动态调整列宽"""
+    #     table_width = self.winfo_width()
+    #     if table_width <= 1:
+    #         return
+    #
+    #     # 计算每列的原始宽度
+    #     self.columnwidths = {}
+    #     widths = []
+    #     cols = self.model.getColumnCount()
+    #     for col in range(cols):
+    #         colname = self.model.getColumnName(col)
+    #         l = max(self.model.getlongestEntry(col), len(colname)+2)
+    #         txt = 'X' * (l + 1)
+    #         tw, _ = util.getTextLength(txt, self.maxcellwidth, font=self.thefont)
+    #         tw = min(tw, self.maxcellwidth)  # 确保不超过最大限制
+    #         self.columnwidths[colname] = tw
+    #         widths.append(tw)
+    #
+    #     sum_width = sum(widths)
+    #     sum_total = table_width
+    #
+    #     # 根据总宽度调整策略
+    #     if sum_width > sum_total:
+    #         # 计算cap阈值
+    #         sorted_widths = sorted(widths)
+    #         n = len(sorted_widths)
+    #         sum_so_far = 0
+    #         cap = sum_total  # 初始值
+    #
+    #         for k in range(n):
+    #             remaining = n - k
+    #             candidate_cap = (sum_total - sum_so_far) / remaining
+    #             if sorted_widths[k] <= candidate_cap:
+    #                 sum_so_far += sorted_widths[k]
+    #             else:
+    #                 cap = candidate_cap
+    #                 break
+    #         else:
+    #             cap = sorted_widths[-1] if n > 0 else 0
+    #
+    #         # 应用阈值调整列宽
+    #         for col in range(cols):
+    #             colname = self.model.getColumnName(col)
+    #             self.columnwidths[colname] = min(widths[col], cap)
+    #
+    #     elif sum_width < sum_total:
+    #         # 扩展列宽以填充剩余空间
+    #         delta = sum_total - sum_width
+    #         num_cols = cols
+    #         avg_inc = delta / num_cols
+    #
+    #         for col in range(num_cols):
+    #             colname = self.model.getColumnName(col)
+    #             new_width = widths[col] + avg_inc
+    #             new_width = min(new_width, self.maxcellwidth)
+    #             new_width = max(new_width, self.cellwidth)
+    #             self.columnwidths[colname] = new_width
