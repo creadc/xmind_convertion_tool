@@ -3,9 +3,13 @@ import logging
 from xmindparser import xmind_to_dict
 
 
-def _is_test_step(title):
+def _is_test_step(parent):
     """判断是否为测试步骤"""
-    return len(title) > 2 and title[0].isdigit() and title[1] == '.' and ("check" in title.lower())
+    if parent.get("topics"):
+        for child in parent["topics"]:
+            if child["title"].lower().startswith("check"):
+                return True
+    return False
 
 
 class TestCaseManager:
@@ -51,13 +55,13 @@ class TestCaseManager:
     def _parse_scenario(self, node, path, suffix):
         """拼接功能场景作为用例名"""
         for child in node.get('topics', []):
-            title = child['title']
-            if _is_test_step(title):
+            if _is_test_step(child):
                 self._parse_test_steps(node, path, suffix)
                 break
             else:
+                print(1)
                 # 拼接用例名称
-                self._parse_scenario(child, f"{path}-{title}", suffix)
+                self._parse_scenario(child, f"{path}-{child['title']}", suffix)
 
     def _parse_test_steps(self, node, path, suffix):
         """解析测试步骤"""
@@ -66,13 +70,9 @@ class TestCaseManager:
         is_new_test_data = True
 
         for child in node.get('topics', []):
-            title = child['title']
-            if _is_test_step(title):
-                step = title
-                expectation = child['topics'][0] if child.get('topics') else None
-                # 预期结果为空时提示一下
-                if expectation['title'] is None:
-                    logging.warning(f"{path}{suffix} - 步骤 '{step}' 缺少预期结果")
+            if _is_test_step(child):
+                step = child['title']
+                expectation = child['topics'][0]
                 # 如果标明门槛，在标题行添加【门槛】
                 threshold = expectation['topics'][0] if expectation.get('topics') else None
                 if threshold and threshold['title'] and ("门槛" not in path):
@@ -85,7 +85,7 @@ class TestCaseManager:
                     steps.append((step, expectation['title'], None))
 
             else:
-                test_data = title
+                test_data = child['title']
                 is_new_test_data = True
 
         if not steps:
