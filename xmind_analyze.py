@@ -71,17 +71,23 @@ class TestCaseManager:
         for child in node.get('topics', []):
             if _is_test_step(child):
                 step = child['title']
-                expectation = child['topics'][0]
-                # 如果标明门槛，在标题行添加【门槛】
-                threshold = expectation['topics'][0] if expectation.get('topics') else None
-                if threshold and threshold['title'] and ("门槛" not in path):
-                    path = f"【{threshold['title']}】{path}"
-                # 只有测试数据更新时带上测试数据
-                if is_new_test_data and test_data is not None:
-                    steps.append((step, expectation['title'], test_data))
-                    is_new_test_data = False
-                else:
-                    steps.append((step, expectation['title'], None))
+                expectations = child['topics']
+                is_first_expectation = True
+                for expectation in expectations:
+                    # 如果包含多个check项，测试步骤和测试数据均为空
+                    if not is_first_expectation:
+                        step = None
+                    # 如果标明门槛，在标题行添加【门槛】
+                    threshold = expectation['topics'][0] if expectation.get('topics') else None
+                    if threshold and threshold['title'] and ("门槛" not in path):
+                        path = f"【{threshold['title']}】{path}"
+                    # 只有测试数据更新时带上测试数据
+                    if is_new_test_data and test_data is not None:
+                        steps.append((step, expectation['title'], test_data))
+                        is_new_test_data = False
+                    else:
+                        steps.append((step, expectation['title'], None))
+                    is_first_expectation = False
 
             else:
                 test_data = child['title']
