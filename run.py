@@ -25,11 +25,6 @@ class JiraLoginApp:
         self.jira_username_var = ttk.StringVar(value=self.config.get('jira', 'username', fallback=''))
         self.jira_password_var = ttk.StringVar(value=self.config.get('jira', 'password', fallback=''))
 
-        # 获取版本
-        self.version_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'xmind_conversion_tool_version.txt')
-        with open(self.version_path, 'r') as f:
-            self.version = f.read()
-
         # 样式初始化
         init_style(self.root)
         # 显示登录窗口
@@ -135,7 +130,7 @@ class JiraLoginApp:
         clean_grid(self.root)
 
         # 修改窗口标题和尺寸
-        self.root.title(f"xmind转换工具 V{self.version}")
+        self.root.title("xmind转换工具")
         self.place_window_center()  # 设置窗口位置
         # 创建主界面
         XMindConvertionApp(self.root, self.jira_helper, self.field_data)
