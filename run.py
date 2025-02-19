@@ -130,7 +130,7 @@ class JiraLoginApp:
         clean_grid(self.root)
 
         # 修改窗口标题和尺寸
-        self.root.title("xmind转换工具")
+        self.root.title("xmind转换工具 V1.0.1")
         self.place_window_center()  # 设置窗口位置
         # 创建主界面
         XMindConvertionApp(self.root, self.jira_helper, self.field_data)
