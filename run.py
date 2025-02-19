@@ -11,6 +11,7 @@ from xmind_conversion import XMindConvertionApp
 class JiraLoginApp:
     def __init__(self, root):
         self.root = root
+        self.version = '1.0.1'
         self.jira_helper = JiraHelper()
         self.style = None
         self.login_frame = None
@@ -130,7 +131,7 @@ class JiraLoginApp:
         clean_grid(self.root)
 
         # 修改窗口标题和尺寸
-        self.root.title("xmind转换工具 V1.0.1")
+        self.root.title(f"xmind转换工具 V{self.version}")
         self.place_window_center()  # 设置窗口位置
         # 创建主界面
         XMindConvertionApp(self.root, self.jira_helper, self.field_data)
