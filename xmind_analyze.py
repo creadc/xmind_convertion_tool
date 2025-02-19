@@ -59,7 +59,6 @@ class TestCaseManager:
                 self._parse_test_steps(node, path, suffix)
                 break
             else:
-                print(1)
                 # 拼接用例名称
                 self._parse_scenario(child, f"{path}-{child['title']}", suffix)
 
