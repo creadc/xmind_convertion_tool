@@ -192,7 +192,9 @@ class XMindConvertionApp:
             show_messagebox(self.root, "error", f"生成EXCEL失败！{e}")
 
     def upload_to_jira(self):
-        if show_messagebox(self.root, "yesno", "确定要上传用例到 JIRA 吗？") == '确认':
+        a = show_messagebox(self.root, "yesno", "确定要上传用例到 JIRA 吗？")
+        print(a)
+        if a == '确认' or a.lower() == 'yes':
             self.notebook.add(self.log_frame, text="日志")
             self.notebook.select(2)
 

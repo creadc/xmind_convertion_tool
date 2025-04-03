@@ -14,8 +14,8 @@ def _is_test_step(parent):
 
 class TestCaseManager:
     def __init__(self, xmind_file, output_dir):
-        self.xmind_file = xmind_file
         self.output_dir = output_dir
+        self.xmind_file = xmind_file
 
         self.data = None
         self.test_cases = []
