@@ -210,19 +210,25 @@ class JiraHelper:
             logging.error(f"获取用例信息异常：{e}")
             raise e
 
-    def upload_test_cases(self, df, conf, status_callback=None):
+    def upload_test_cases(self, df, conf, status_callback=None, progress_callback=None):
         issue_count = 0  # 已创建用例数目
         step_count = 0  # 添加用例的步骤
         issue_id = ''
         issue_key = ''
         headers = self.headers
 
-        for _, row in df.iterrows():
+        total_rows = len(df)
+
+        for index, row in df.iterrows():
+            # 更新进度
+            if progress_callback and total_rows > 0:
+                progress_callback(index, total_rows)
+
             case_name = row['用例名称（主题）']
             if case_name:  # 如果用例名称不为空，创建新用例
                 try:
-                    res = self.create_case(row)
-                    # res = {'id': '1339911', 'key': 'ET-3490'}
+                    # res = self.create_case(row)
+                    res = {'id': '1216493', 'key': 'ET-2808'}
                     if res:
                         issue_id = res['id']
                         issue_key = res['key']
@@ -270,6 +276,11 @@ class JiraHelper:
                 logging.error(f"{issue_key} 添加第 {step_count} 个步骤时异常：{e}")
                 status_callback(f"{issue_key} 添加第 {step_count} 个步骤时异常!!!", "error")
                 return False
+
+        # 最终进度更新
+        if progress_callback and total_rows > 0:
+            progress_callback(total_rows, total_rows)
+
         return True
 
     @staticmethod

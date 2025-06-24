@@ -1,5 +1,7 @@
 #coding=utf-8
 import logging
+import threading
+
 from common import *
 from pandas import DataFrame as pd
 from tkinter import filedialog
@@ -193,7 +195,6 @@ class XMindConvertionApp:
 
     def upload_to_jira(self):
         a = show_messagebox(self.root, "yesno", "确定要上传用例到 JIRA 吗？")
-        print(a)
         if a == '确认' or a.lower() == 'yes':
             self.notebook.add(self.log_frame, text="日志")
             self.notebook.select(2)
@@ -202,14 +203,65 @@ class XMindConvertionApp:
             if self.log_text.get("1.0", ttk.END).strip():
                 self.update_status("\n")
 
+            # 禁用上传按钮防止重复操作
+            self.upload_btn.config(state="disabled")
+
+            self.progress_bar = ttk.Progressbar(self.log_frame, orient="horizontal", length=400, mode="determinate")
+            self.progress_bar.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+            self.progress_bar["value"] = 0
+
+            # 启动上传线程
+            upload_thread = threading.Thread(
+                target=self._run_upload_in_thread,
+                daemon=True
+            )
+            upload_thread.start()
+
+    def _run_upload_in_thread(self):
+        """在后台线程中执行上传操作"""
+        try:
+            # 获取数据
             df = self.table.model.df
-            conf = {"link_type": self.link_type_widget.get(), "link_issue": self.link_issue_widget.get()}
-            self.update_status("开始上传用例到 JIRA...")
-            result = self.jira_helper.upload_test_cases(df, conf, self.update_status)
+            conf = {
+                "link_type": self.link_type_widget.get(),
+                "link_issue": self.link_issue_widget.get()
+            }
+
+            # 创建线程安全的回调函数
+            def safe_callback(message, level="normal"):
+                self.root.after(0, lambda: self.update_status(message, level))
+
+            # 创建进度更新函数
+            def progress_callback(current, total):
+                percent = int((current / total) * 100)
+                self.root.after(0, lambda: self.progress_bar.configure(value=percent))
+                self.root.after(0, lambda: self.progress_bar.update())
+
+            # 通知开始
+            safe_callback("开始上传用例到 JIRA...")
+
+            # 执行上传
+            result = self.jira_helper.upload_test_cases(
+                df,
+                conf,
+                status_callback=safe_callback,
+                progress_callback=progress_callback
+            )
+
+            # 显示最终结果
             if result:
-                self.update_status("\n所有用例已成功上传到 JIRA！")
+                safe_callback("\n所有用例已成功上传到 JIRA！")
             else:
-                self.update_status("\n部分用例上传到 JIRA 失败，请查看日志!!!", "error")
+                safe_callback("\n部分用例上传到 JIRA 失败，请查看日志!!!", "error")
+
+        except Exception as e:
+            self.root.after(0, lambda: self.update_status(f"上传过程中发生错误: {str(e)}", "error"))
+            logging.exception("上传过程中发生异常")
+        finally:
+            # 重新启用按钮
+            self.root.after(0, lambda: self.upload_btn.config(state="normal"))
+            # 隐藏进度条
+            self.root.after(0, lambda: self.progress_bar.pack_forget())
 
     def update_status(self, message, level="normal"):
         self.log_text.config(state="normal")
