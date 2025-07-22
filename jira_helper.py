@@ -227,8 +227,8 @@ class JiraHelper:
             case_name = row['用例名称（主题）']
             if case_name:  # 如果用例名称不为空，创建新用例
                 try:
-                    # res = self.create_case(row)
-                    res = {'id': '1216493', 'key': 'ET-2808'}
+                    res = self.create_case(row)
+                    # res = {'id': '1216493', 'key': 'ET-2808'}
                     if res:
                         issue_id = res['id']
                         issue_key = res['key']
