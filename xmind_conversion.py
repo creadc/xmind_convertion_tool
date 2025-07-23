@@ -77,13 +77,11 @@ class XMindConvertionApp:
         ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=3, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="功能场景*").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        self.scenario_main_widget = ttk.Combobox(self.config_container, values=self.scenario_main)
+        self.scenario_main_widget = ttk.Combobox(self.config_container, values=self.scenario_main, state="readonly")
         self.scenario_main_widget.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         self.scenario_main_widget.bind("<<ComboboxSelected>>", self.update_scenarios)
-        self.scenario_main_widget.bind("<KeyRelease>", self.filter_main_scenarios)
-        self.scenario_sub_widget = ttk.Combobox(self.config_container)
+        self.scenario_sub_widget = ttk.Combobox(self.config_container, state="readonly")
         self.scenario_sub_widget.grid(row=1, column=2, columnspan=2, padx=0, pady=5, sticky="w")
-        self.scenario_sub_widget.bind("<KeyRelease>", self.filter_sub_scenarios)
 
         ttk.Label(self.config_container, text="影响版本*").grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.effect_version_widget = ttk.Combobox(self.config_container, values=self.effect_version, state="readonly")
@@ -297,76 +295,8 @@ class XMindConvertionApp:
 
     def update_scenarios(self, event):
         """更新子功能场景"""
-        self.scenario_sub_widget.configure(values=self.scenario[self.scenario_main_widget.get()])
+        self.scenario_sub_widget["values"] = self.scenario[self.scenario_main_widget.get()]
         self.scenario_sub_widget.set("")
-
-    def filter_main_scenarios(self, event):
-        """过滤主功能场景下拉框选项，输入时自动展开并保持焦点"""
-        # 忽略输入法组合过程中的按键和特殊键
-        if event.keysym in ['Shift_L', 'Shift_R', 'Control_L', 'Control_R', 'Alt_L', 'Alt_R']:
-            return
-        
-        value = self.scenario_main_widget.get()
-        current_pos = self.scenario_main_widget.index('insert')
-        
-        # 延迟执行，避免输入法干扰
-        def delayed_filter():
-            if value == '':
-                filtered = self.scenario_main
-            else:
-                filtered = [item for item in self.scenario_main if value.lower() in item.lower()]
-            
-            self.scenario_main_widget.configure(values=filtered)
-            
-            # 如果有匹配项且输入框有焦点，则展开下拉框
-            if filtered and self.root.focus_get() == self.scenario_main_widget:
-                # 使用after延迟展开，确保输入法完成
-                self.root.after(50, lambda: [
-                    self.scenario_main_widget.event_generate('<Down>'),
-                    # 延迟恢复焦点和光标位置
-                    self.root.after(50, lambda: [
-                        self.scenario_main_widget.focus_set(),
-                        self.scenario_main_widget.icursor(current_pos)
-                    ])
-                ])
-        
-        # 使用after延迟执行，避免输入法干扰
-        self.root.after(150, delayed_filter)
-
-    def filter_sub_scenarios(self, event):
-        """过滤子功能场景下拉框选项，输入时自动展开并保持焦点"""
-        # 忽略输入法组合过程中的按键和特殊键
-        if event.keysym in ['Shift_L', 'Shift_R', 'Control_L', 'Control_R', 'Alt_L', 'Alt_R']:
-            return
-            
-        value = self.scenario_sub_widget.get()
-        current_pos = self.scenario_sub_widget.index('insert')
-        
-        # 延迟执行，避免输入法干扰
-        def delayed_filter():
-            sub_options = self.scenario.get(self.scenario_main_widget.get(), [])
-            
-            if value == '':
-                filtered = sub_options
-            else:
-                filtered = [item for item in sub_options if value.lower() in item.lower()]
-            
-            self.scenario_sub_widget.configure(values=filtered)
-            
-            # 如果有匹配项且输入框有焦点，则展开下拉框
-            if filtered and self.root.focus_get() == self.scenario_sub_widget:
-                # 使用after延迟展开，确保输入法完成
-                self.root.after(50, lambda: [
-                    self.scenario_sub_widget.event_generate('<Down>'),
-                    # 延迟恢复焦点和光标位置
-                    self.root.after(50, lambda: [
-                        self.scenario_sub_widget.focus_set(),
-                        self.scenario_sub_widget.icursor(current_pos)
-                    ])
-                ])
-        
-        # 使用after延迟执行，避免输入法干扰
-        self.root.after(150, delayed_filter)
 
     def verify_input(self):
         fields = [
