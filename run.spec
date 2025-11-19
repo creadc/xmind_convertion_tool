@@ -4,7 +4,7 @@
 a = Analysis(
     ['run.py'],
     pathex=[],
-    binaries=[('C:\\Users\\yzp\\.conda\\envs\\xmind\\Lib\\site-packages\\pandas.libs\\msvcp140-0f2ea95580b32bcfc81c235d5751ce78.dll', '.')],
+    binaries=[('D:\\application\\Anaconda3\\envs\\xmind\\Lib\\site-packages\\pandas.libs\\msvcp140-0f2ea95580b32bcfc81c235d5751ce78.dll', '.')],
     datas=[],
     hiddenimports=[],
     hookspath=[],
