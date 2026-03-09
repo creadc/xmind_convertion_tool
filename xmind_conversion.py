@@ -1,6 +1,7 @@
 #coding=utf-8
 import logging
 import threading
+import tkinter as tk
 
 from common import *
 from pandas import DataFrame as pd
@@ -36,6 +37,18 @@ class XMindConvertionApp:
         self.table = None
         self.log_text = None
         self.status_box = None
+        self.scenario_main_all = []
+        self.scenario_sub_all = []
+        self.scenario_filter_delay = 300
+        self.scenario_popup_max_rows = 12
+        self._scenario_main_filter_job = None
+        self._scenario_sub_filter_job = None
+        self.scenario_popup = None
+        self.scenario_listbox = None
+        self.scenario_scrollbar = None
+        self.active_scenario_widget = None
+        self.scenario_main_ime_active = False
+        self.scenario_sub_ime_active = False
 
         # 解析 JIRA 字段信息
         self.parse_field_data(field_data)
@@ -77,11 +90,27 @@ class XMindConvertionApp:
         ttk.Button(self.config_container, text="选择本地文件", command=self.select_xmind_file).grid(row=0, column=3, pady=5, sticky="w")
 
         ttk.Label(self.config_container, text="功能场景*").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        self.scenario_main_widget = ttk.Combobox(self.config_container, values=self.scenario_main, state="readonly")
+        self.scenario_main_all = list(self.scenario_main)
+        self.scenario_sub_all = []
+        self.scenario_main_widget = ttk.Combobox(self.config_container, values=self.scenario_main_all, state="normal")
         self.scenario_main_widget.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         self.scenario_main_widget.bind("<<ComboboxSelected>>", self.update_scenarios)
-        self.scenario_sub_widget = ttk.Combobox(self.config_container, state="readonly")
+        self.scenario_main_widget.bind("<KeyRelease>", self.on_scenario_main_typing, add="+")
+        self.scenario_main_widget.bind("<ButtonPress-1>", self.on_scenario_combobox_click, add="+")
+        self.scenario_main_widget.bind("<Down>", self.on_scenario_arrow_down, add="+")
+        self.scenario_main_widget.bind("<Escape>", self.hide_scenario_popup, add="+")
+        self.scenario_main_widget.bind("<<TkStartIMEMarkedText>>", self.on_scenario_main_ime_start, add="+")
+        self.scenario_main_widget.bind("<<TkEndIMEMarkedText>>", self.on_scenario_main_ime_end, add="+")
+        self.scenario_sub_widget = ttk.Combobox(self.config_container, state="normal")
         self.scenario_sub_widget.grid(row=1, column=2, columnspan=2, padx=0, pady=5, sticky="w")
+        self.scenario_sub_widget.bind("<KeyRelease>", self.on_scenario_sub_typing, add="+")
+        self.scenario_sub_widget.bind("<ButtonPress-1>", self.on_scenario_combobox_click, add="+")
+        self.scenario_sub_widget.bind("<Down>", self.on_scenario_arrow_down, add="+")
+        self.scenario_sub_widget.bind("<Escape>", self.hide_scenario_popup, add="+")
+        self.scenario_sub_widget.bind("<<TkStartIMEMarkedText>>", self.on_scenario_sub_ime_start, add="+")
+        self.scenario_sub_widget.bind("<<TkEndIMEMarkedText>>", self.on_scenario_sub_ime_end, add="+")
+        self.root.bind_all("<ButtonPress-1>", self.on_global_mouse_down, add="+")
+        self.root.bind("<FocusOut>", self.on_root_focus_out, add="+")
 
         ttk.Label(self.config_container, text="影响版本*").grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.effect_version_widget = ttk.Combobox(self.config_container, values=self.effect_version, state="readonly")
@@ -261,7 +290,7 @@ class XMindConvertionApp:
             # 重新启用按钮
             self.root.after(0, lambda: self.upload_btn.config(state="normal"))
             # 隐藏进度条
-            self.root.after(0, lambda: self.progress_bar.pack_forget())
+            self.root.after(0, lambda: self.progress_bar.grid_remove())
 
     def update_status(self, message, level="normal"):
         self.log_text.config(state="normal")
@@ -280,6 +309,14 @@ class XMindConvertionApp:
         self.log_text.insert(ttk.END, message, level)
 
     def parse_field_data(self, field_data):
+        if not isinstance(field_data, dict):
+            raise ValueError("JIRA 字段信息为空或格式错误")
+
+        required_keys = ["功能场景", "影响版本", "测试用例来源", "用例级别", "用例类型"]
+        missing_keys = [key for key in required_keys if key not in field_data]
+        if missing_keys:
+            raise KeyError(f"JIRA 字段信息缺少必要字段: {', '.join(missing_keys)}")
+
         self.scenario = field_data["功能场景"]
         self.scenario_main = list(field_data["功能场景"].keys())
         self.effect_version = field_data["影响版本"]
@@ -295,8 +332,245 @@ class XMindConvertionApp:
 
     def update_scenarios(self, event):
         """更新子功能场景"""
-        self.scenario_sub_widget["values"] = self.scenario[self.scenario_main_widget.get()]
+        selected_main = self.scenario_main_widget.get().strip()
+        self.scenario_sub_all = list(self.scenario.get(selected_main, []))
+        self.scenario_sub_widget["values"] = self.scenario_sub_all
         self.scenario_sub_widget.set("")
+
+    def on_scenario_combobox_click(self, event):
+        widget = event.widget
+        self._focus_scenario_widget(widget)
+        self.show_scenario_popup(widget)
+        return "break"
+
+    def on_scenario_arrow_down(self, event):
+        self._focus_scenario_widget(event.widget)
+        self.show_scenario_popup(event.widget)
+        return "break"
+
+    def on_scenario_main_typing(self, event):
+        self.active_scenario_widget = self.scenario_main_widget
+        if self.scenario_main_ime_active:
+            return
+        self._schedule_scenario_filter(is_main=True)
+
+    def on_scenario_sub_typing(self, event):
+        self.active_scenario_widget = self.scenario_sub_widget
+        if self.scenario_sub_ime_active:
+            return
+        self._schedule_scenario_filter(is_main=False)
+
+    def on_scenario_main_ime_start(self, event):
+        self.scenario_main_ime_active = True
+
+    def on_scenario_main_ime_end(self, event):
+        self.scenario_main_ime_active = False
+        self.active_scenario_widget = self.scenario_main_widget
+        self._schedule_scenario_filter(is_main=True)
+
+    def on_scenario_sub_ime_start(self, event):
+        self.scenario_sub_ime_active = True
+
+    def on_scenario_sub_ime_end(self, event):
+        self.scenario_sub_ime_active = False
+        self.active_scenario_widget = self.scenario_sub_widget
+        self._schedule_scenario_filter(is_main=False)
+
+    def _schedule_scenario_filter(self, is_main):
+        job_attr = "_scenario_main_filter_job" if is_main else "_scenario_sub_filter_job"
+        callback = self._apply_main_scenario_filter if is_main else self._apply_sub_scenario_filter
+        job = getattr(self, job_attr)
+        if job:
+            self.root.after_cancel(job)
+        setattr(self, job_attr, self.root.after(self.scenario_filter_delay, callback))
+
+    def _apply_main_scenario_filter(self):
+        self._scenario_main_filter_job = None
+        keyword = self.scenario_main_widget.get().strip().lower()
+        if keyword:
+            filtered = [item for item in self.scenario_main_all if keyword in item.lower()]
+        else:
+            filtered = self.scenario_main_all
+        self.scenario_main_widget["values"] = filtered
+
+        selected_main = self.scenario_main_widget.get().strip()
+        self.scenario_sub_all = list(self.scenario.get(selected_main, []))
+        self.scenario_sub_widget["values"] = self.scenario_sub_all
+        if selected_main not in self.scenario:
+            self.scenario_sub_widget.set("")
+
+        self._focus_scenario_widget(self.scenario_main_widget)
+        if self.active_scenario_widget == self.scenario_main_widget:
+            self.show_scenario_popup(self.scenario_main_widget)
+
+    def _apply_sub_scenario_filter(self):
+        self._scenario_sub_filter_job = None
+        keyword = self.scenario_sub_widget.get().strip().lower()
+        if not self.scenario_sub_all:
+            selected_main = self.scenario_main_widget.get().strip()
+            self.scenario_sub_all = list(self.scenario.get(selected_main, []))
+
+        if keyword:
+            filtered = [item for item in self.scenario_sub_all if keyword in item.lower()]
+        else:
+            filtered = self.scenario_sub_all
+        self.scenario_sub_widget["values"] = filtered
+
+        self._focus_scenario_widget(self.scenario_sub_widget)
+        if self.active_scenario_widget == self.scenario_sub_widget:
+            self.show_scenario_popup(self.scenario_sub_widget)
+
+    def _focus_scenario_widget(self, widget):
+        widget.focus_force()
+        widget.icursor(len(widget.get()))
+
+    def _ensure_scenario_popup(self):
+        if self.scenario_popup and self.scenario_popup.winfo_exists():
+            return
+
+        self.scenario_popup = tk.Toplevel(self.root)
+        self.scenario_popup.withdraw()
+        self.scenario_popup.overrideredirect(True)
+        self.scenario_popup.transient(self.root)
+        self.scenario_popup.configure(borderwidth=1, relief="solid", background="white")
+
+        popup_body = tk.Frame(self.scenario_popup, borderwidth=0, highlightthickness=0, background="white")
+        popup_body.pack(fill="both", expand=True)
+
+        self.scenario_listbox = tk.Listbox(
+            popup_body,
+            activestyle="none",
+            borderwidth=0,
+            exportselection=False,
+            highlightthickness=0,
+            relief="flat",
+        )
+        self.scenario_scrollbar = tk.Scrollbar(popup_body, orient="vertical", command=self.scenario_listbox.yview)
+        self.scenario_listbox.configure(yscrollcommand=self.scenario_scrollbar.set)
+        self.scenario_listbox.pack(side="left", fill="both", expand=True)
+        self.scenario_listbox.bind("<Motion>", self.on_scenario_listbox_hover)
+        self.scenario_listbox.bind("<Leave>", self.on_scenario_listbox_leave)
+        self.scenario_listbox.bind("<ButtonRelease-1>", self.on_scenario_listbox_select)
+
+    def _get_filtered_scenario_values(self, widget):
+        keyword = widget.get().strip().lower()
+        source = self.scenario_main_all if widget == self.scenario_main_widget else self.scenario_sub_all
+        if keyword:
+            return [item for item in source if keyword in item.lower()]
+        return list(source)
+
+    def show_scenario_popup(self, widget):
+        self._ensure_scenario_popup()
+        self.active_scenario_widget = widget
+        values = self._get_filtered_scenario_values(widget)
+        self.scenario_listbox.delete(0, tk.END)
+        for item in values:
+            self.scenario_listbox.insert(tk.END, item)
+        self.scenario_listbox.yview_moveto(0)
+
+        height = min(max(len(values), 1), self.scenario_popup_max_rows)
+        self.scenario_listbox.configure(height=height)
+        if len(values) > self.scenario_popup_max_rows:
+            if not self.scenario_scrollbar.winfo_ismapped():
+                self.scenario_scrollbar.pack(side="right", fill="y")
+        elif self.scenario_scrollbar.winfo_ismapped():
+            self.scenario_scrollbar.pack_forget()
+
+        self.root.update_idletasks()
+        x = widget.winfo_rootx()
+        y = widget.winfo_rooty() + widget.winfo_height()
+        width = max(widget.winfo_width(), self.scenario_popup.winfo_reqwidth())
+        popup_height = self.scenario_popup.winfo_reqheight()
+        self.scenario_popup.geometry(f"{width}x{popup_height}+{x}+{y}")
+        self.scenario_popup.deiconify()
+        self.scenario_popup.lift()
+        self._focus_scenario_widget(widget)
+
+        if values:
+            self.scenario_listbox.selection_clear(0, tk.END)
+            self.scenario_listbox.selection_set(0)
+            self.scenario_listbox.activate(0)
+
+    def hide_scenario_popup(self, event=None):
+        if self.scenario_popup and self.scenario_popup.winfo_exists():
+            self.scenario_popup.withdraw()
+        if event and getattr(event, "widget", None) in (self.scenario_main_widget, self.scenario_sub_widget):
+            return "break"
+
+    def on_global_mouse_down(self, event):
+        if not self.scenario_popup or not self.scenario_popup.winfo_exists():
+            return
+
+        widget = event.widget
+        if widget in (self.scenario_main_widget, self.scenario_sub_widget, self.scenario_listbox):
+            return
+
+        parent = getattr(widget, "master", None)
+        if parent == self.scenario_popup:
+            return
+
+        self.hide_scenario_popup()
+
+    def on_root_focus_out(self, event):
+        self.root.after_idle(self._hide_popup_if_app_inactive)
+
+    def _hide_popup_if_app_inactive(self):
+        if not self.scenario_popup or not self.scenario_popup.winfo_exists():
+            return
+
+        try:
+            focus_widget_name = str(self.root.tk.call("focus"))
+        except tk.TclError:
+            self.hide_scenario_popup()
+            return
+
+        if not focus_widget_name:
+            self.hide_scenario_popup()
+            return
+
+        # ttk.Combobox opens an internal popdown window that tkinter cannot
+        # always resolve back to a widget instance. Treat it as an external
+        # focus target for this popup and close safely.
+        if "popdown" in focus_widget_name:
+            self.hide_scenario_popup()
+            return
+
+        try:
+            focus_widget = self.root.nametowidget(focus_widget_name)
+        except KeyError:
+            self.hide_scenario_popup()
+            return
+
+        if focus_widget.winfo_toplevel() != self.root:
+            self.hide_scenario_popup()
+
+    def on_scenario_listbox_hover(self, event):
+        if self.scenario_listbox.size() == 0:
+            return
+
+        index = self.scenario_listbox.nearest(event.y)
+        self.scenario_listbox.selection_clear(0, tk.END)
+        self.scenario_listbox.selection_set(index)
+        self.scenario_listbox.activate(index)
+
+    def on_scenario_listbox_leave(self, event):
+        if self.scenario_listbox.size() == 0:
+            return
+
+        current = self.scenario_listbox.index(tk.ACTIVE)
+        self.scenario_listbox.selection_clear(0, tk.END)
+        self.scenario_listbox.selection_set(current)
+
+    def on_scenario_listbox_select(self, event):
+        if not self.active_scenario_widget or not self.scenario_listbox.curselection():
+            return
+
+        value = self.scenario_listbox.get(self.scenario_listbox.curselection()[0])
+        self.active_scenario_widget.set(value)
+        self._focus_scenario_widget(self.active_scenario_widget)
+        if self.active_scenario_widget == self.scenario_main_widget:
+            self.update_scenarios(None)
+        self.hide_scenario_popup()
 
     def verify_input(self):
         fields = [

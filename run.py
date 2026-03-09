@@ -59,7 +59,7 @@ class JiraLoginApp:
         # 登录按钮
         ttk.Button(self.login_frame, text="登录", command=self.handle_login_button).grid(row=2, column=0, columnspan=2, pady=20)
 
-        root.place_window_center()
+        self.root.place_window_center()
         self.root.bind('<Return>', self.handle_login_button_event)
 
         # 如果用户名和密码存在，直接登录
@@ -104,6 +104,7 @@ class JiraLoginApp:
         except Exception as e:
             destroy_popup(popup)
             show_messagebox(self.root, "error", f"连接 JIRA 服务器失败：{e}")
+            return
 
         update_popup(popup, "正在初始化，请稍候...\n")
         # 获取 JIRA 字段信息
@@ -114,9 +115,11 @@ class JiraLoginApp:
             if not self.field_data:
                 # 获取 JIRA 字段信息失败
                 show_messagebox(self.root, "error", "获取 JIRA 字段信息失败！")
+                return
         except Exception as e:
             destroy_popup(popup)
             show_messagebox(self.root, "error", f"获取jira字段信息异常：{e}")
+            return
 
         # 进入主界面
         self.open_main_app()

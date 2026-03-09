@@ -20,6 +20,7 @@ class JiraHelper:
         self.field_map = {}
         self.project = "ET"
         self.issuetype = "测试"
+        self.request_timeout = 10
 
     def login(self, username, password):
         """登录"""
@@ -28,7 +29,7 @@ class JiraHelper:
                 f"{self.base_url}/rest/auth/1/session",
                 headers=self.headers,
                 json={"username": username, "password": password},
-                timeout=10
+                timeout=self.request_timeout
             )
             if response.status_code != 200:
                 logging.error(f"JIRA 登录失败: {response.text}")
@@ -57,7 +58,7 @@ class JiraHelper:
                 f"{self.base_url}/secure/QuickCreateIssue!default.jspa?decorator=none",
                 headers=headers,
                 data=data,
-                timeout=10
+                timeout=self.request_timeout
             )
             if response.status_code != 200:
                 logging.error(f"获取 JIRA 字段信息失败: {response.text}")
@@ -142,6 +143,7 @@ class JiraHelper:
                 f"{self.base_url}/rest/api/2/issue",
                 headers=self.headers,
                 json=data,
+                timeout=self.request_timeout,
             )
             # 新建失败
             if response.status_code not in [200, 201]:
@@ -158,7 +160,12 @@ class JiraHelper:
         data = {"step": step, "data": data, "result": result, "customFieldValues": {}}
         print(f"添加测试步骤：{data}")
         try:
-            response = requests.post(self.base_url + "/rest/zephyr/latest/teststep/" + issue_id, headers=headers, json=data)
+            response = requests.post(
+                self.base_url + "/rest/zephyr/latest/teststep/" + issue_id,
+                headers=headers,
+                json=data,
+                timeout=self.request_timeout
+            )
             if response.status_code != 200:
                 logging.error(f"添加测试步骤失败，详情为: {response.text}")
                 return False
@@ -190,7 +197,11 @@ class JiraHelper:
         """获取用例的信息"""
         info = IssueInfo()
         try:
-            response = requests.get(self.base_url + "/browse/" + issue_key, headers=self.headers)
+            response = requests.get(
+                self.base_url + "/browse/" + issue_key,
+                headers=self.headers,
+                timeout=self.request_timeout
+            )
             if response.status_code != 200:
                 logging.error(f"获取用例的信息失败: {issue_key}")
                 return info
